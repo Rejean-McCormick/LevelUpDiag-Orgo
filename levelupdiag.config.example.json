@@ -1,0 +1,88 @@
+{
+  "schema": "levelupdiag.config.v1",
+  "app_name": "My App",
+  "target_repo_root": "C:/mycode/MyApp",
+  "backend_url": "http://127.0.0.1:8000",
+  "frontend_url": "http://localhost:5173",
+  "control_dir": ".levelupdiag",
+  "artifacts_dir": ".levelupdiag/diagnostics",
+  "toolchain": {
+    "required": [
+      "python",
+      "node",
+      "pnpm"
+    ],
+    "optional": [
+      "git",
+      "uv"
+    ]
+  },
+  "commands": {
+    "backend_start": "",
+    "frontend_start": "",
+    "install": "",
+    "lint": "",
+    "typecheck": "",
+    "test": "",
+    "build": ""
+  },
+  "paths": {
+    "frontend_dir": "frontend",
+    "backend_dir": ".",
+    "package_json": "frontend/package.json",
+    "pyproject": "pyproject.toml",
+    "openapi_file": "openapi.json"
+  },
+  "api": {
+    "health_paths": [
+      "/health",
+      "/healthz",
+      "/health/healthz",
+      "/readyz"
+    ],
+    "openapi_paths": [
+      "/openapi.json",
+      "/api/openapi.json"
+    ]
+  },
+  "routes": {
+    "smoke": [
+      "/"
+    ],
+    "critical": [
+      "/",
+      "/dashboard"
+    ]
+  },
+  "mocks": {
+    "enabled": false,
+    "fixture_dir": "tests/fixtures",
+    "states": [
+      "success",
+      "empty",
+      "error",
+      "slow",
+      "malformed"
+    ]
+  },
+  "playwright": {
+    "enabled": true,
+    "browser": "chromium",
+    "headless": true,
+    "timeout_ms": 15000
+  },
+  "budgets": {
+    "page_load_ms": 3000,
+    "api_latency_ms": 1000,
+    "bundle_kb": 1000
+  },
+  "security": {
+    "protected_routes": [],
+    "forbidden_log_patterns": [
+      "password=",
+      "secret=",
+      "api_key="
+    ]
+  },
+  "env": {}
+}

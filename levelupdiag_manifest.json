@@ -1,0 +1,187 @@
+{
+  "schema": "levelupdiag.manifest.v1",
+  "suite_name": "LevelUpDiag Universal Diagnostics",
+  "version": "0.2.0",
+  "repository_mode": "standalone-diagnostics-suite",
+  "config_file": "levelupdiag.config.local.json",
+  "config_example_file": "levelupdiag.config.example.json",
+  "control_dir_default": ".levelupdiag",
+  "levels": [
+    {
+      "id": "N00",
+      "name": "Control Panel",
+      "file": "levels/00-control_panel.pyw",
+      "requires_backend": false,
+      "requires_frontend": false,
+      "requires_playwright": false,
+      "blocking_for_release": false,
+      "purpose": "Démarrer/arrêter/ouvrir les services locaux via commandes de config.",
+      "category": "control_panel"
+    },
+    {
+      "id": "N01",
+      "name": "Environment",
+      "file": "levels/01-environment.pyw",
+      "requires_backend": false,
+      "requires_frontend": false,
+      "requires_playwright": false,
+      "blocking_for_release": true,
+      "purpose": "Vérifier machine, outils, chemins, config locale.",
+      "category": "environment"
+    },
+    {
+      "id": "N02",
+      "name": "Services",
+      "file": "levels/02-services.pyw",
+      "requires_backend": false,
+      "requires_frontend": false,
+      "requires_playwright": false,
+      "blocking_for_release": true,
+      "purpose": "Tester backend/frontend/health endpoints configurés.",
+      "category": "services"
+    },
+    {
+      "id": "N03",
+      "name": "Static Integrity",
+      "file": "levels/03-static_integrity.pyw",
+      "requires_backend": false,
+      "requires_frontend": false,
+      "requires_playwright": false,
+      "blocking_for_release": true,
+      "purpose": "Vérifier structure fichiers, manifest, config, commandes statiques.",
+      "category": "static_integrity"
+    },
+    {
+      "id": "N04",
+      "name": "API Contract",
+      "file": "levels/04-api_contract.pyw",
+      "requires_backend": true,
+      "requires_frontend": false,
+      "requires_playwright": false,
+      "blocking_for_release": true,
+      "purpose": "Vérifier OpenAPI ou contrat HTTP configuré.",
+      "category": "api_contract"
+    },
+    {
+      "id": "N05",
+      "name": "Data & Mock States",
+      "file": "levels/05-data_mock_states.pyw",
+      "requires_backend": false,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Tester fixtures, empty/error/slow/malformed si configurés.",
+      "category": "data_mock_states"
+    },
+    {
+      "id": "N06",
+      "name": "Runtime Smoke",
+      "file": "levels/06-runtime_smoke.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Charger l’app réelle et détecter erreurs runtime minimales.",
+      "category": "runtime_smoke"
+    },
+    {
+      "id": "N07",
+      "name": "Routing",
+      "file": "levels/07-routing.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Tester routes critiques configurées.",
+      "category": "routing"
+    },
+    {
+      "id": "N08",
+      "name": "Critical UX Flows",
+      "file": "levels/08-critical_ux_flows.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Tester parcours utilisateur critiques propres à l’app.",
+      "category": "critical_ux_flows"
+    },
+    {
+      "id": "N09",
+      "name": "Error & Resilience",
+      "file": "levels/09-error_resilience.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Tester timeouts, 500, réseau lent, réponses invalides.",
+      "category": "error_resilience"
+    },
+    {
+      "id": "N10",
+      "name": "Accessibility",
+      "file": "levels/10-accessibility.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Tester navigation clavier, labels, focus, règles WCAG de base.",
+      "category": "accessibility"
+    },
+    {
+      "id": "N11",
+      "name": "Visual Regression",
+      "file": "levels/11-visual_regression.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Comparer captures baseline/current/diff.",
+      "category": "visual_regression"
+    },
+    {
+      "id": "N12",
+      "name": "Performance & Reliability",
+      "file": "levels/12-performance_reliability.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Mesurer budgets de chargement, API, ressources, répétition.",
+      "category": "performance_reliability"
+    },
+    {
+      "id": "N13",
+      "name": "Security",
+      "file": "levels/13-security.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": false,
+      "blocking_for_release": true,
+      "purpose": "Vérifier contrôles sécurité applicatifs minimum.",
+      "category": "security"
+    },
+    {
+      "id": "N14",
+      "name": "Release Gate",
+      "file": "levels/14-release_gate.pyw",
+      "requires_backend": false,
+      "requires_frontend": false,
+      "requires_playwright": false,
+      "blocking_for_release": true,
+      "purpose": "Agréger les rapports et décider GO/NO-GO.",
+      "category": "release_gate"
+    },
+    {
+      "id": "N15",
+      "name": "Real-World Sandbox",
+      "file": "levels/15-real_world_sandbox.pyw",
+      "requires_backend": true,
+      "requires_frontend": true,
+      "requires_playwright": true,
+      "blocking_for_release": true,
+      "purpose": "Valider un scénario réaliste mais contrôlé/sandboxé.",
+      "category": "real-world_sandbox"
+    }
+  ]
+}
