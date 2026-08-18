@@ -1,169 +1,279 @@
-"""Central configuration for portable LevelUpDiag suites.
+"""Central configuration for LevelUpDiag-Koali.
 
-Every .pyw level should call load_config() instead of hardcoding local paths,
-URLs, commands, tool names, routes or artifact folders.
+The configuration module owns machine- and target-specific values.  It does
+not execute checks or subprocesses.  A versioned example file provides the
+base configuration and an optional local file overrides only the values that
+need to differ on a developer machine.
 """
 
 from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 CONFIG_ENV = "LEVELUPDIAG_CONFIG"
 ROOT_ENV = "LEVELUPDIAG_ROOT"
+TARGET_ROOT_ENV = "LEVELUPDIAG_TARGET_REPO_ROOT"
+APP_NAME_ENV = "LEVELUPDIAG_APP_NAME"
+
 LOCAL_CONFIG = "levelupdiag.config.local.json"
 EXAMPLE_CONFIG = "levelupdiag.config.example.json"
 MANIFEST_FILE = "levelupdiag_manifest.json"
+CONFIG_SCHEMA = "levelupdiag.koali.config.v1"
+
+DEFAULT_COMMAND_KEYS = (
+    "docs",
+    "contracts",
+    "components",
+    "integrations",
+    "profiles",
+    "security",
+    "offline",
+    "system",
+)
 
 
 def detect_diag_root(start: Path | None = None) -> Path:
-    current = (start or Path(__file__)).resolve()
+    """Return the LevelUpDiag-Koali repository root.
+
+    Resolution is deterministic and intentionally does not require ``levels/``
+    to exist because the clean reconstruction creates that directory in a
+    later bundle.
+    """
+
+    explicit = os.environ.get(ROOT_ENV)
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+
+    current = (start or Path(__file__)).expanduser().resolve()
     if current.is_file():
         current = current.parent
-    for candidate in [current, *current.parents]:
-        if (candidate / MANIFEST_FILE).is_file() and (candidate / "levels").is_dir():
+
+    for candidate in (current, *current.parents):
+        if (candidate / MANIFEST_FILE).is_file() or (
+            candidate / EXAMPLE_CONFIG
+        ).is_file():
             return candidate
-    env = os.environ.get(ROOT_ENV)
-    if env:
-        return Path(env)
+
     return Path(__file__).resolve().parents[1]
 
 
-def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    result = dict(base)
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"Configuration must be a JSON object: {path}")
+    return value
+
+
+def _deep_merge(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = dict(base)
     for key, value in override.items():
-        if isinstance(value, dict) and isinstance(result.get(key), dict):
-            result[key] = _deep_merge(result[key], value)  # type: ignore[arg-type]
+        previous = result.get(key)
+        if isinstance(previous, dict) and isinstance(value, Mapping):
+            result[key] = _deep_merge(previous, value)
         else:
             result[key] = value
     return result
 
 
+def _string_map(value: Any, *, field_name: str) -> dict[str, str]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be an object")
+    out: dict[str, str] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or not isinstance(item, str):
+            raise ValueError(f"{field_name} keys and values must be strings")
+        out[key] = item
+    return out
+
+
+def _toolchain(value: Any) -> dict[str, list[str]]:
+    if not isinstance(value, dict):
+        raise ValueError("toolchain must be an object")
+    result: dict[str, list[str]] = {}
+    for key in ("required", "optional"):
+        items = value.get(key, [])
+        if not isinstance(items, list) or not all(isinstance(x, str) for x in items):
+            raise ValueError(f"toolchain.{key} must be a list of strings")
+        result[key] = list(items)
+    unknown = set(value) - {"required", "optional"}
+    if unknown:
+        names = ", ".join(sorted(str(x) for x in unknown))
+        raise ValueError(f"Unsupported toolchain fields: {names}")
+    return result
+
+
+def _commands(value: Any) -> dict[str, str]:
+    result = _string_map(value, field_name="commands")
+    unknown = set(result) - set(DEFAULT_COMMAND_KEYS)
+    if unknown:
+        names = ", ".join(sorted(unknown))
+        raise ValueError(f"Unsupported command keys: {names}")
+    for key in DEFAULT_COMMAND_KEYS:
+        result.setdefault(key, "")
+    return result
+
+
 @dataclass(slots=True)
 class AppConfig:
+    """Resolved configuration used by levels and runners."""
+
     diagnostics_repo_root: str
-    app_name: str = "My App"
+    schema: str = CONFIG_SCHEMA
+    app_name: str = "kOA-Linux"
     target_repo_root: str = "."
-    backend_url: str = "http://127.0.0.1:8000"
-    frontend_url: str = "http://localhost:5173"
     control_dir: str = ".levelupdiag"
     artifacts_dir: str = ".levelupdiag/diagnostics"
-    raw: dict[str, Any] = field(default_factory=dict)
+    toolchain: dict[str, list[str]] = field(
+        default_factory=lambda: {"required": ["python"], "optional": ["git", "cargo"]}
+    )
+    commands: dict[str, str] = field(
+        default_factory=lambda: {key: "" for key in DEFAULT_COMMAND_KEYS}
+    )
+    env_values: dict[str, str] = field(default_factory=dict)
     config_path: str = ""
+    raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @property
     def diagnostics_root_path(self) -> Path:
-        return Path(self.diagnostics_repo_root)
+        return Path(self.diagnostics_repo_root).expanduser().resolve()
 
     @property
     def target_root_path(self) -> Path:
-        return Path(self.target_repo_root)
-
-    @property
-    def artifacts_root_path(self) -> Path:
-        path = self.target_root_path / self.artifacts_dir
-        path.mkdir(parents=True, exist_ok=True)
-        return path
+        path = Path(self.target_repo_root).expanduser()
+        if not path.is_absolute():
+            path = self.diagnostics_root_path / path
+        return path.resolve()
 
     @property
     def control_root_path(self) -> Path:
-        path = self.target_root_path / self.control_dir
-        path.mkdir(parents=True, exist_ok=True)
-        return path
+        path = Path(self.control_dir).expanduser()
+        if not path.is_absolute():
+            path = self.diagnostics_root_path / path
+        return path.resolve()
 
-    def get(self, dotted: str, default: Any = None) -> Any:
-        current: Any = self.raw
-        for part in dotted.split("."):
-            if not isinstance(current, dict) or part not in current:
-                return default
-            current = current[part]
-        return current
+    @property
+    def artifacts_root_path(self) -> Path:
+        path = Path(self.artifacts_dir).expanduser()
+        if not path.is_absolute():
+            path = self.diagnostics_root_path / path
+        return path.resolve()
 
-    def path(self, dotted: str, default: str = "") -> Path:
-        value = self.get(dotted, default)
-        p = Path(str(value))
-        return p if p.is_absolute() else self.target_root_path / p
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.raw.get(key, default)
+
+    def command(self, name: str) -> str:
+        if name not in DEFAULT_COMMAND_KEYS:
+            raise KeyError(f"Unknown command key: {name}")
+        return self.commands.get(name, "")
 
     def env(self) -> dict[str, str]:
-        env = os.environ.copy()
-        env[ROOT_ENV] = str(self.diagnostics_root_path)
-        if self.config_path:
-            env[CONFIG_ENV] = self.config_path
-        env["LEVELUPDIAG_TARGET_REPO_ROOT"] = str(self.target_root_path)
-        env["LEVELUPDIAG_BACKEND_URL"] = self.backend_url
-        env["LEVELUPDIAG_FRONTEND_URL"] = self.frontend_url
-        env["LEVELUPDIAG_APP_NAME"] = self.app_name
-        for key, value in (self.get("env", {}) or {}).items():
-            env[str(key)] = str(value)
-        return env
+        result = dict(os.environ)
+        result.update(self.env_values)
+        return result
 
     def to_dict(self) -> dict[str, Any]:
-        data = asdict(self)
-        data["raw"] = self.raw
-        return data
+        return {
+            "schema": self.schema,
+            "app_name": self.app_name,
+            "target_repo_root": self.target_repo_root,
+            "control_dir": self.control_dir,
+            "artifacts_dir": self.artifacts_dir,
+            "toolchain": {
+                "required": list(self.toolchain.get("required", [])),
+                "optional": list(self.toolchain.get("optional", [])),
+            },
+            "commands": {key: self.commands.get(key, "") for key in DEFAULT_COMMAND_KEYS},
+            "env": dict(self.env_values),
+        }
 
 
-def config_path(root: Path | None = None) -> Path:
+def _validate_config(raw: Mapping[str, Any]) -> None:
+    schema = raw.get("schema")
+    if schema != CONFIG_SCHEMA:
+        raise ValueError(f"Unsupported configuration schema: {schema!r}")
+
+    for field_name in (
+        "app_name",
+        "target_repo_root",
+        "control_dir",
+        "artifacts_dir",
+    ):
+        if not isinstance(raw.get(field_name), str) or not str(raw[field_name]).strip():
+            raise ValueError(f"{field_name} must be a non-empty string")
+
+    _toolchain(raw.get("toolchain", {}))
+    _commands(raw.get("commands", {}))
+    _string_map(raw.get("env", {}), field_name="env")
+
+
+def _config_path(diag_root: Path) -> Path:
     explicit = os.environ.get(CONFIG_ENV)
     if explicit:
-        return Path(explicit)
-    diag_root = root or detect_diag_root()
+        return Path(explicit).expanduser().resolve()
     local = diag_root / LOCAL_CONFIG
-    if local.exists():
-        return local
-    return diag_root / EXAMPLE_CONFIG
+    return local if local.is_file() else diag_root / EXAMPLE_CONFIG
 
 
 def load_config(path: Path | None = None, root: Path | None = None) -> AppConfig:
-    diag_root = root or detect_diag_root()
-    chosen = path or config_path(diag_root)
-    example = diag_root / EXAMPLE_CONFIG
-    base: dict[str, Any] = {}
-    if example.exists() and chosen != example:
-        base = json.loads(example.read_text(encoding="utf-8"))
-    if chosen.exists():
-        data = json.loads(chosen.read_text(encoding="utf-8"))
-    else:
-        data = {}
-    raw = _deep_merge(base, data)
+    """Load the example configuration and merge an optional local override."""
 
-    # Environment overrides: useful for CI or temporary local runs.
-    if os.environ.get("LEVELUPDIAG_TARGET_REPO_ROOT"):
-        raw["target_repo_root"] = os.environ["LEVELUPDIAG_TARGET_REPO_ROOT"]
-    if os.environ.get("LEVELUPDIAG_BACKEND_URL"):
-        raw["backend_url"] = os.environ["LEVELUPDIAG_BACKEND_URL"]
-    if os.environ.get("LEVELUPDIAG_FRONTEND_URL"):
-        raw["frontend_url"] = os.environ["LEVELUPDIAG_FRONTEND_URL"]
-    if os.environ.get("LEVELUPDIAG_APP_NAME"):
-        raw["app_name"] = os.environ["LEVELUPDIAG_APP_NAME"]
+    diag_root = (root or detect_diag_root()).expanduser().resolve()
+    example = diag_root / EXAMPLE_CONFIG
+    if not example.is_file():
+        raise FileNotFoundError(f"Missing versioned example configuration: {example}")
+
+    base = _read_json_object(example)
+    chosen = path.expanduser().resolve() if path is not None else _config_path(diag_root)
+    override: dict[str, Any] = {}
+    if chosen != example:
+        if chosen.is_file():
+            override = _read_json_object(chosen)
+        elif path is not None or os.environ.get(CONFIG_ENV):
+            raise FileNotFoundError(f"Configuration file does not exist: {chosen}")
+
+    raw = _deep_merge(base, override)
+
+    if os.environ.get(TARGET_ROOT_ENV):
+        raw["target_repo_root"] = os.environ[TARGET_ROOT_ENV]
+    if os.environ.get(APP_NAME_ENV):
+        raw["app_name"] = os.environ[APP_NAME_ENV]
+
+    _validate_config(raw)
 
     return AppConfig(
         diagnostics_repo_root=str(diag_root),
-        app_name=str(raw.get("app_name", "My App")),
-        target_repo_root=str(raw.get("target_repo_root", ".")),
-        backend_url=str(raw.get("backend_url", "http://127.0.0.1:8000")).rstrip("/"),
-        frontend_url=str(raw.get("frontend_url", "http://localhost:5173")).rstrip("/"),
-        control_dir=str(raw.get("control_dir", ".levelupdiag")),
-        artifacts_dir=str(raw.get("artifacts_dir", ".levelupdiag/diagnostics")),
-        raw=raw,
+        schema=str(raw["schema"]),
+        app_name=str(raw["app_name"]),
+        target_repo_root=str(raw["target_repo_root"]),
+        control_dir=str(raw["control_dir"]),
+        artifacts_dir=str(raw["artifacts_dir"]),
+        toolchain=_toolchain(raw["toolchain"]),
+        commands=_commands(raw["commands"]),
+        env_values=_string_map(raw["env"], field_name="env"),
         config_path=str(chosen),
+        raw=dict(raw),
     )
 
 
 def save_config(config: AppConfig, path: Path | None = None) -> Path:
-    chosen = path or Path(config.config_path or (config.diagnostics_root_path / LOCAL_CONFIG))
+    """Write a local configuration explicitly requested by the caller."""
+
+    chosen = (
+        path.expanduser().resolve()
+        if path is not None
+        else config.diagnostics_root_path / LOCAL_CONFIG
+    )
     chosen.parent.mkdir(parents=True, exist_ok=True)
-    data = dict(config.raw)
-    data.update({
-        "app_name": config.app_name,
-        "target_repo_root": config.target_repo_root,
-        "backend_url": config.backend_url,
-        "frontend_url": config.frontend_url,
-        "control_dir": config.control_dir,
-        "artifacts_dir": config.artifacts_dir,
-    })
-    chosen.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    payload = json.dumps(config.to_dict(), ensure_ascii=False, indent=2) + "\n"
+    temporary = chosen.with_name(f".{chosen.name}.tmp")
+    temporary.write_text(payload, encoding="utf-8")
+    temporary.replace(chosen)
+    config.config_path = str(chosen)
     return chosen

@@ -1,8 +1,8 @@
 {
-  "schema": "levelupdiag.manifest.v1",
-  "suite_name": "LevelUpDiag Universal Diagnostics",
-  "version": "0.2.0",
-  "repository_mode": "standalone-diagnostics-suite",
+  "schema": "levelupdiag.koali.manifest.v1",
+  "suite_name": "LevelUpDiag-Koali",
+  "version": "1.0.0",
+  "repository_mode": "standalone-development-appendix",
   "config_file": "levelupdiag.config.local.json",
   "config_example_file": "levelupdiag.config.example.json",
   "control_dir_default": ".levelupdiag",
@@ -10,178 +10,150 @@
     {
       "id": "N00",
       "name": "Control Panel",
-      "file": "levels/00-control_panel.pyw",
-      "requires_backend": false,
-      "requires_frontend": false,
-      "requires_playwright": false,
-      "blocking_for_release": false,
-      "purpose": "Démarrer/arrêter/ouvrir les services locaux via commandes de config.",
-      "category": "control_panel"
+      "file": "levels/N00_control_panel.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [],
+      "timeout_seconds": 60,
+      "purpose": "Self-check léger de LevelUpDiag-Koali et point de contrôle local."
     },
     {
       "id": "N01",
       "name": "Environment",
-      "file": "levels/01-environment.pyw",
-      "requires_backend": false,
-      "requires_frontend": false,
-      "requires_playwright": false,
-      "blocking_for_release": true,
-      "purpose": "Vérifier machine, outils, chemins, config locale.",
-      "category": "environment"
+      "file": "levels/N01_environment.pyw",
+      "enabled": true,
+      "required": true,
+      "depends_on": [],
+      "timeout_seconds": 120,
+      "purpose": "Vérifier Python, les chemins configurés et les outils requis."
     },
     {
       "id": "N02",
-      "name": "Services",
-      "file": "levels/02-services.pyw",
-      "requires_backend": false,
-      "requires_frontend": false,
-      "requires_playwright": false,
-      "blocking_for_release": true,
-      "purpose": "Tester backend/frontend/health endpoints configurés.",
-      "category": "services"
+      "name": "Repository",
+      "file": "levels/N02_repository.pyw",
+      "enabled": true,
+      "required": true,
+      "depends_on": [
+        "N01"
+      ],
+      "timeout_seconds": 120,
+      "purpose": "Observer le checkout kOA-Linux et son état sans le modifier."
     },
     {
       "id": "N03",
-      "name": "Static Integrity",
-      "file": "levels/03-static_integrity.pyw",
-      "requires_backend": false,
-      "requires_frontend": false,
-      "requires_playwright": false,
-      "blocking_for_release": true,
-      "purpose": "Vérifier structure fichiers, manifest, config, commandes statiques.",
-      "category": "static_integrity"
+      "name": "Documentation",
+      "file": "levels/N03_documentation.pyw",
+      "enabled": true,
+      "required": true,
+      "depends_on": [
+        "N01",
+        "N02"
+      ],
+      "timeout_seconds": 300,
+      "purpose": "Exécuter la validation documentaire publique configurée."
     },
     {
       "id": "N04",
-      "name": "API Contract",
-      "file": "levels/04-api_contract.pyw",
-      "requires_backend": true,
-      "requires_frontend": false,
-      "requires_playwright": false,
-      "blocking_for_release": true,
-      "purpose": "Vérifier OpenAPI ou contrat HTTP configuré.",
-      "category": "api_contract"
+      "name": "Contracts",
+      "file": "levels/N04_contracts.pyw",
+      "enabled": true,
+      "required": true,
+      "depends_on": [
+        "N01",
+        "N02"
+      ],
+      "timeout_seconds": 300,
+      "purpose": "Exécuter la validation publique des contrats."
     },
     {
       "id": "N05",
-      "name": "Data & Mock States",
-      "file": "levels/05-data_mock_states.pyw",
-      "requires_backend": false,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Tester fixtures, empty/error/slow/malformed si configurés.",
-      "category": "data_mock_states"
+      "name": "Components",
+      "file": "levels/N05_components.pyw",
+      "enabled": true,
+      "required": true,
+      "depends_on": [
+        "N01",
+        "N02"
+      ],
+      "timeout_seconds": 600,
+      "purpose": "Exécuter les validations publiques des composants."
     },
     {
       "id": "N06",
-      "name": "Runtime Smoke",
-      "file": "levels/06-runtime_smoke.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Charger l’app réelle et détecter erreurs runtime minimales.",
-      "category": "runtime_smoke"
+      "name": "Integrations",
+      "file": "levels/N06_integrations.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [
+        "N04",
+        "N05"
+      ],
+      "timeout_seconds": 600,
+      "purpose": "Exécuter les validations publiques d'intégrations lorsqu'elles sont configurées."
     },
     {
       "id": "N07",
-      "name": "Routing",
-      "file": "levels/07-routing.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Tester routes critiques configurées.",
-      "category": "routing"
+      "name": "Profiles",
+      "file": "levels/N07_profiles.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [
+        "N04",
+        "N05"
+      ],
+      "timeout_seconds": 600,
+      "purpose": "Exécuter les validations publiques de profils lorsqu'elles sont configurées."
     },
     {
       "id": "N08",
-      "name": "Critical UX Flows",
-      "file": "levels/08-critical_ux_flows.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Tester parcours utilisateur critiques propres à l’app.",
-      "category": "critical_ux_flows"
+      "name": "Security",
+      "file": "levels/N08_security.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [
+        "N01",
+        "N02"
+      ],
+      "timeout_seconds": 900,
+      "purpose": "Exécuter la validation sécurité publique configurée."
     },
     {
       "id": "N09",
-      "name": "Error & Resilience",
-      "file": "levels/09-error_resilience.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Tester timeouts, 500, réseau lent, réponses invalides.",
-      "category": "error_resilience"
+      "name": "Offline",
+      "file": "levels/N09_offline.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [
+        "N01",
+        "N02"
+      ],
+      "timeout_seconds": 900,
+      "purpose": "Exécuter la validation offline publique configurée."
     },
     {
       "id": "N10",
-      "name": "Accessibility",
-      "file": "levels/10-accessibility.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Tester navigation clavier, labels, focus, règles WCAG de base.",
-      "category": "accessibility"
+      "name": "System",
+      "file": "levels/N10_system.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [
+        "N01",
+        "N02"
+      ],
+      "timeout_seconds": 1200,
+      "purpose": "Exécuter la validation système publique configurée."
     },
     {
       "id": "N11",
-      "name": "Visual Regression",
-      "file": "levels/11-visual_regression.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Comparer captures baseline/current/diff.",
-      "category": "visual_regression"
-    },
-    {
-      "id": "N12",
-      "name": "Performance & Reliability",
-      "file": "levels/12-performance_reliability.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Mesurer budgets de chargement, API, ressources, répétition.",
-      "category": "performance_reliability"
-    },
-    {
-      "id": "N13",
-      "name": "Security",
-      "file": "levels/13-security.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": false,
-      "blocking_for_release": true,
-      "purpose": "Vérifier contrôles sécurité applicatifs minimum.",
-      "category": "security"
-    },
-    {
-      "id": "N14",
-      "name": "Release Gate",
-      "file": "levels/14-release_gate.pyw",
-      "requires_backend": false,
-      "requires_frontend": false,
-      "requires_playwright": false,
-      "blocking_for_release": true,
-      "purpose": "Agréger les rapports et décider GO/NO-GO.",
-      "category": "release_gate"
-    },
-    {
-      "id": "N15",
-      "name": "Real-World Sandbox",
-      "file": "levels/15-real_world_sandbox.pyw",
-      "requires_backend": true,
-      "requires_frontend": true,
-      "requires_playwright": true,
-      "blocking_for_release": true,
-      "purpose": "Valider un scénario réaliste mais contrôlé/sandboxé.",
-      "category": "real-world_sandbox"
+      "name": "Delivery",
+      "file": "levels/N11_delivery.pyw",
+      "enabled": true,
+      "required": false,
+      "depends_on": [
+        "N01"
+      ],
+      "timeout_seconds": 300,
+      "purpose": "Vérifier l'absence de l'appendice dans une cible de livraison."
     }
   ]
 }

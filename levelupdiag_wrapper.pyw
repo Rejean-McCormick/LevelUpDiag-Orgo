@@ -1,152 +1,256 @@
-# -*- coding: utf-8 -*-
-"""LevelUpDiag Wrapper GUI.
+"""Tkinter control surface for LevelUpDiag-Koali.
 
-Reads levelupdiag_manifest.json + levelupdiag.config.local.json.
-Lists levels and launches the selected .pyw as a separate process.
-It does not import levels/*.pyw.
+The wrapper is intentionally presentation-only.  Planning, dependencies,
+execution and verdict semantics remain in ``levelupdiag_core``.
 """
 
 from __future__ import annotations
 
-import json
+import sys
 import tkinter as tk
-from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import messagebox, ttk
+from collections.abc import Callable
 
+from levelupdiag_core.models import CampaignResult, LevelResult
 from levelupdiag_wrapper_common import (
-    APP_NAME, APP_VERSION, control_dir, detect_diag_root, launch_level,
-    load_config, load_manifest, open_path, config_path,
+    BackgroundTask,
+    LevelRow,
+    format_campaign_result,
+    format_level_result,
+    level_rows,
+    load_gui_state,
+    open_logs,
+    run_enabled,
+    run_one,
 )
 
-class Wrapper(tk.Tk):
-    def __init__(self) -> None:
-        super().__init__()
-        self.diag_root = detect_diag_root()
-        self.levels = load_manifest(self.diag_root)
-        self.config = load_config(self.diag_root)
-        self.selected = tk.StringVar(value=self.levels[0].id if self.levels else "")
-        self.console_var = tk.BooleanVar(value=False)
-        self.status = tk.StringVar(value="Prêt")
-        self.title(f"{APP_NAME} {APP_VERSION}")
-        self.geometry("1120x720")
-        self.minsize(960, 600)
-        self._build()
-        self._refresh_details()
-        self.log(f"Root: {self.diag_root}")
-        self.log(f"Config: {config_path(self.diag_root)}")
 
-    def _build(self) -> None:
+class LevelUpDiagApp(ttk.Frame):
+    """Thin Tk presentation over the shared LevelUpDiag-Koali core."""
+
+    POLL_MS = 100
+
+    def __init__(self, master: tk.Misc) -> None:
+        super().__init__(master, padding=10)
+        self.master = master
+        self.config_state = None
+        self.levels = []
+        self._rows_by_id: dict[str, LevelRow] = {}
+        self._task: BackgroundTask[LevelResult | CampaignResult] | None = None
+
+        self.status_var = tk.StringVar(master=master, value="Loading…")
+        self._build_widgets()
+        self.reload_state(show_dialog=False)
+
+    def _build_widgets(self) -> None:
+        self.grid(row=0, column=0, sticky="nsew")
+        self.master.rowconfigure(0, weight=1)
+        self.master.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(3, weight=1)
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=1)
-        outer = ttk.Frame(self, padding=12)
-        outer.grid(row=0, column=0, sticky="nsew")
-        outer.columnconfigure(1, weight=1)
-        outer.rowconfigure(2, weight=1)
-        ttk.Label(outer, text="LevelUpDiag", font=("Segoe UI", 18, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
-        subtitle = f"{self.config.get('app_name', 'App')} — niveaux .pyw autonomes, config centrale"
-        ttk.Label(outer, text=subtitle, foreground="#666666").grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 10))
 
-        left = ttk.Frame(outer)
-        left.grid(row=2, column=0, sticky="nsw", padx=(0, 10))
-        left.rowconfigure(0, weight=1)
-        self.listbox = tk.Listbox(left, width=38, exportselection=False)
-        self.listbox.grid(row=0, column=0, sticky="ns")
-        for lv in self.levels:
-            self.listbox.insert("end", lv.display_title)
-        self.listbox.bind("<<ListboxSelect>>", self._on_select)
-        if self.levels:
-            self.listbox.selection_set(0)
+        toolbar = ttk.Frame(self)
+        toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        for column in range(6):
+            toolbar.columnconfigure(column, weight=0)
+        toolbar.columnconfigure(6, weight=1)
 
-        right = ttk.Frame(outer)
-        right.grid(row=2, column=1, sticky="nsew")
-        right.columnconfigure(0, weight=1)
-        right.rowconfigure(3, weight=1)
-        self.detail = tk.Text(right, height=8, wrap="word", font=("Consolas", 10))
-        self.detail.grid(row=0, column=0, sticky="ew")
-        self.detail.configure(state="disabled")
-        bar = ttk.Frame(right)
-        bar.grid(row=1, column=0, sticky="ew", pady=8)
-        ttk.Button(bar, text="Lancer niveau", command=self.run_selected).pack(side="left")
-        ttk.Checkbutton(bar, text="console", variable=self.console_var).pack(side="left", padx=8)
-        ttk.Button(bar, text="Ouvrir config", command=self.open_config).pack(side="left", padx=4)
-        ttk.Button(bar, text="Ouvrir artefacts", command=lambda: open_path(control_dir(self.diag_root) / "diagnostics")).pack(side="left", padx=4)
-        ttk.Button(bar, text="Recharger", command=self.reload).pack(side="left", padx=4)
-        ttk.Label(right, textvariable=self.status).grid(row=2, column=0, sticky="w")
-        log_frame = ttk.LabelFrame(right, text="Log wrapper")
-        log_frame.grid(row=3, column=0, sticky="nsew")
-        log_frame.columnconfigure(0, weight=1)
-        log_frame.rowconfigure(0, weight=1)
-        self.log_text = tk.Text(log_frame, wrap="word", font=("Consolas", 9))
-        self.log_text.grid(row=0, column=0, sticky="nsew")
-        scroll = ttk.Scrollbar(log_frame, command=self.log_text.yview)
-        scroll.grid(row=0, column=1, sticky="ns")
-        self.log_text.configure(yscrollcommand=scroll.set)
+        self.reload_button = ttk.Button(toolbar, text="Reload", command=self.reload_state)
+        self.reload_button.grid(row=0, column=0, padx=(0, 6))
+        self.run_button = ttk.Button(toolbar, text="Run selected", command=self.run_selected)
+        self.run_button.grid(row=0, column=1, padx=(0, 6))
+        self.run_all_button = ttk.Button(toolbar, text="Run all enabled", command=self.run_all)
+        self.run_all_button.grid(row=0, column=2, padx=(0, 6))
+        self.logs_button = ttk.Button(toolbar, text="Open logs", command=self.open_selected_logs)
+        self.logs_button.grid(row=0, column=3, padx=(0, 6))
+        ttk.Button(toolbar, text="Quit", command=self.master.destroy).grid(row=0, column=4)
 
-    def _on_select(self, _event=None) -> None:
-        idxs = self.listbox.curselection()
-        if idxs:
-            self.selected.set(self.levels[idxs[0]].id)
-            self._refresh_details()
+        columns = ("enabled", "required", "verdict")
+        self.tree = ttk.Treeview(self, columns=columns, show="tree headings", selectmode="browse")
+        self.tree.heading("#0", text="Level")
+        self.tree.heading("enabled", text="Enabled")
+        self.tree.heading("required", text="Required")
+        self.tree.heading("verdict", text="Last verdict")
+        self.tree.column("#0", width=360, minwidth=220, stretch=True)
+        self.tree.column("enabled", width=80, anchor="center", stretch=False)
+        self.tree.column("required", width=80, anchor="center", stretch=False)
+        self.tree.column("verdict", width=120, anchor="center", stretch=False)
+        self.tree.grid(row=1, column=0, sticky="nsew")
+        self.tree.bind("<Double-1>", lambda _event: self.run_selected())
 
-    def _current_level(self):
-        for lv in self.levels:
-            if lv.id == self.selected.get():
-                return lv
-        return self.levels[0] if self.levels else None
+        status = ttk.Label(self, textvariable=self.status_var, anchor="w")
+        status.grid(row=2, column=0, sticky="ew", pady=(8, 4))
 
-    def _refresh_details(self) -> None:
-        lv = self._current_level()
-        self.detail.configure(state="normal")
-        self.detail.delete("1.0", "end")
-        if lv:
-            text = (
-                f"{lv.display_title}\n"
-                f"Fichier: {lv.file}\n"
-                f"But: {lv.purpose}\n"
-                f"Pré-requis: {lv.requirements_label()}\n"
-                f"Bloquant release: {'oui' if lv.blocking_for_release else 'non'}\n"
+        output_frame = ttk.LabelFrame(self, text="Last run", padding=4)
+        output_frame.grid(row=3, column=0, sticky="nsew")
+        output_frame.rowconfigure(0, weight=1)
+        output_frame.columnconfigure(0, weight=1)
+        self.output = tk.Text(output_frame, height=12, wrap="word", state="disabled")
+        self.output.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(output_frame, orient="vertical", command=self.output.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.output.configure(yscrollcommand=scrollbar.set)
+
+    def _set_busy(self, busy: bool) -> None:
+        state = "disabled" if busy else "normal"
+        for button in (self.reload_button, self.run_button, self.run_all_button, self.logs_button):
+            button.configure(state=state)
+
+    def _write_output(self, text: str) -> None:
+        self.output.configure(state="normal")
+        self.output.delete("1.0", "end")
+        self.output.insert("1.0", text)
+        self.output.configure(state="disabled")
+
+    def _selected_level(self):
+        selection = self.tree.selection()
+        if not selection:
+            return None
+        row = self._rows_by_id.get(selection[0])
+        return row.level if row is not None else None
+
+    def _populate_tree(self, rows: list[LevelRow]) -> None:
+        selected = self.tree.selection()[0] if self.tree.selection() else None
+        self.tree.delete(*self.tree.get_children())
+        self._rows_by_id = {row.level.id: row for row in rows}
+        for row in rows:
+            level = row.level
+            self.tree.insert(
+                "",
+                "end",
+                iid=level.id,
+                text=level.display_title,
+                values=(row.enabled_text, row.required_text, row.last_verdict),
             )
-            self.detail.insert("end", text)
-        self.detail.configure(state="disabled")
+        if selected and self.tree.exists(selected):
+            self.tree.selection_set(selected)
+        elif rows:
+            self.tree.selection_set(rows[0].level.id)
 
-    def run_selected(self) -> None:
-        lv = self._current_level()
-        if not lv:
+    def reload_state(self, show_dialog: bool = True) -> None:
+        if self._task is not None and self._task.running:
             return
         try:
-            proc = launch_level(self.diag_root, lv, console=self.console_var.get())
-            self.log(f"Launched {lv.id}: PID {proc.pid} — {lv.file}")
-            self.status.set(f"Lancé: {lv.id}")
+            config, levels = load_gui_state()
+            rows = level_rows(config, levels)
         except Exception as exc:
-            self.log(f"FAIL launch {lv.id}: {exc}")
-            messagebox.showerror(APP_NAME, str(exc))
-
-    def open_config(self) -> None:
-        path = config_path(self.diag_root)
-        if not path.exists():
-            messagebox.showwarning(APP_NAME, f"Config introuvable: {path}")
+            self.status_var.set(f"Reload failed: {exc}")
+            if show_dialog:
+                messagebox.showerror("LevelUpDiag-Koali", str(exc), parent=self.master)
             return
-        if __import__('os').name == 'nt':
-            __import__('os').startfile(str(path))  # type: ignore[attr-defined]
+
+        self.config_state = config
+        self.levels = levels
+        self._populate_tree(rows)
+        self.status_var.set(
+            f"{config.app_name} · {len(levels)} levels · target: {config.target_root_path}"
+        )
+
+    def _start_task(
+        self,
+        description: str,
+        target: Callable[[], LevelResult | CampaignResult],
+    ) -> None:
+        if self._task is not None and self._task.running:
+            return
+        self._task = BackgroundTask(target)
+        self._set_busy(True)
+        self.status_var.set(description)
+        self._task.start()
+        self.after(self.POLL_MS, self._poll_task)
+
+    def _poll_task(self) -> None:
+        task = self._task
+        if task is None:
+            return
+        message = task.poll()
+        if message is None:
+            if task.running:
+                self.after(self.POLL_MS, self._poll_task)
+                return
+            # Defensive: the worker always queues a terminal message.
+            self._set_busy(False)
+            self.status_var.set("Run ended without a result")
+            self._task = None
+            return
+
+        self._task = None
+        self._set_busy(False)
+        if message.kind == "error":
+            exc = message.payload
+            self.status_var.set(f"Run failed: {exc}")
+            self._write_output(f"{type(exc).__name__}: {exc}")
+            messagebox.showerror("LevelUpDiag-Koali", str(exc), parent=self.master)
+            self.reload_state(show_dialog=False)
+            return
+
+        result = message.payload
+        final_status: str
+        if isinstance(result, LevelResult):
+            final_status = f"{result.level}: {result.verdict}"
+            self._write_output(format_level_result(result))
+        elif isinstance(result, CampaignResult):
+            final_status = f"Campaign {result.campaign}: {result.verdict}"
+            self._write_output(format_campaign_result(result))
         else:
-            open_path(path.parent)
+            final_status = "Runner returned an unsupported result"
+            self._write_output(repr(result))
+        self.reload_state(show_dialog=False)
+        self.status_var.set(final_status)
 
-    def reload(self) -> None:
-        self.levels = load_manifest(self.diag_root)
-        self.config = load_config(self.diag_root)
-        self.listbox.delete(0, "end")
-        for lv in self.levels:
-            self.listbox.insert("end", lv.display_title)
-        if self.levels:
-            self.listbox.selection_set(0)
-            self.selected.set(self.levels[0].id)
-        self._refresh_details()
-        self.log("Manifest/config rechargés")
+    def run_selected(self) -> None:
+        level = self._selected_level()
+        if level is None:
+            messagebox.showinfo("LevelUpDiag-Koali", "Select a level first.", parent=self.master)
+            return
+        if self.config_state is None:
+            self.reload_state()
+            if self.config_state is None:
+                return
+        config = self.config_state
+        self._start_task(f"Running {level.display_title}…", lambda: run_one(level, config))
 
-    def log(self, message: str) -> None:
-        import time
-        self.log_text.insert("end", f"[{time.strftime('%H:%M:%S')}] {message}\n")
-        self.log_text.see("end")
+    def run_all(self) -> None:
+        if self.config_state is None:
+            self.reload_state()
+            if self.config_state is None:
+                return
+        config = self.config_state
+        levels = list(self.levels)
+        self._start_task("Running all enabled levels…", lambda: run_enabled(levels, config))
+
+    def open_selected_logs(self) -> None:
+        if self.config_state is None:
+            self.reload_state()
+            if self.config_state is None:
+                return
+        try:
+            open_logs(self.config_state, self._selected_level())
+        except Exception as exc:
+            self.status_var.set(f"Could not open logs: {exc}")
+            messagebox.showerror("LevelUpDiag-Koali", str(exc), parent=self.master)
+
+
+def create_app() -> tuple[tk.Tk, LevelUpDiagApp]:
+    """Create, but do not run, the Tk application."""
+
+    root = tk.Tk()
+    root.title("LevelUpDiag-Koali")
+    root.minsize(760, 520)
+    app = LevelUpDiagApp(root)
+    return root, app
+
+
+def main() -> int:
+    try:
+        root, _app = create_app()
+    except tk.TclError as exc:
+        print(f"LevelUpDiag-Koali GUI unavailable: {exc}", file=sys.stderr)
+        return 3
+    root.mainloop()
+    return 0
+
 
 if __name__ == "__main__":
-    Wrapper().mainloop()
+    raise SystemExit(main())

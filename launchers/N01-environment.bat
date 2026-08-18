@@ -1,5 +1,4 @@
 @echo off
 setlocal
-cd /d "%~dp0.."
-py "%CD%\scriptsun_level.py" N01
-if errorlevel 1 pause
+py "%~dp0..\scripts\run_level.py" N01 --windowed
+exit /b %ERRORLEVEL%

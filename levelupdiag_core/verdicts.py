@@ -1,6 +1,8 @@
-"""Verdict constants and aggregation rules."""
+"""Canonical LevelUpDiag-Koali verdicts and aggregation rules."""
 
 from __future__ import annotations
+
+from collections.abc import Iterable
 
 PASS = "PASS"
 WARN = "WARN"
@@ -12,30 +14,67 @@ ERROR = "ERROR"
 INFRA_ERROR = "INFRA_ERROR"
 CONFIG_ERROR = "CONFIG_ERROR"
 
-_ORDER = {
+VERDICTS: tuple[str, ...] = (
+    PASS,
+    WARN,
+    FAIL,
+    SKIP,
+    BLOCKED,
+    PARTIAL,
+    ERROR,
+    INFRA_ERROR,
+    CONFIG_ERROR,
+)
+
+# From least to most severe. The ordering is explicit so aggregation is
+# deterministic even where the historical LevelUpDiag implementation treated
+# multiple verdicts as equivalent severity classes.
+_PRECEDENCE: dict[str, int] = {
     PASS: 0,
     SKIP: 1,
     WARN: 2,
     PARTIAL: 3,
     FAIL: 4,
-    BLOCKED: 4,
-    INFRA_ERROR: 5,
-    CONFIG_ERROR: 5,
-    ERROR: 6,
+    BLOCKED: 5,
+    INFRA_ERROR: 6,
+    CONFIG_ERROR: 7,
+    ERROR: 8,
 }
 
-def normalize(value: str | None) -> str:
-    raw = str(value or PASS).strip().upper()
-    return raw if raw in _ORDER else ERROR
 
-def worst(values: list[str]) -> str:
-    if not values:
-        return PASS
-    return max((normalize(v) for v in values), key=lambda v: _ORDER[v])
+def normalize_verdict(value: str) -> str:
+    """Return the canonical verdict spelling or reject an unsupported value.
 
-def exit_code(status: str, *, strict_warn: bool = False) -> int:
-    status = normalize(status)
-    if status == PASS or status == SKIP:
+    Whitespace and case are normalized deliberately. Missing or unknown values
+    are configuration/programming errors and are never converted to ``PASS``.
+    """
+
+    if not isinstance(value, str):
+        raise ValueError("verdict must be a string")
+    normalized = value.strip().upper()
+    if normalized not in _PRECEDENCE:
+        raise ValueError(f"unsupported verdict: {value!r}")
+    return normalized
+
+
+def aggregate_verdicts(values: Iterable[str]) -> str:
+    """Return the most severe verdict from a non-empty iterable.
+
+    An empty collection has no successful meaning, so it is rejected rather
+    than silently becoming ``PASS``.
+    """
+
+    normalized = [normalize_verdict(value) for value in values]
+    if not normalized:
+        raise ValueError("cannot aggregate an empty verdict collection")
+    return max(normalized, key=_PRECEDENCE.__getitem__)
+
+
+def exit_code(verdict: str, *, strict_warn: bool = False) -> int:
+    """Map a canonical verdict to the stable process-exit convention."""
+
+    status = normalize_verdict(verdict)
+    if status in {PASS, SKIP}:
         return 0
     if status in {WARN, PARTIAL}:
         return 1 if strict_warn else 0
