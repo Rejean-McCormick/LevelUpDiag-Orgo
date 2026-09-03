@@ -1,80 +1,149 @@
-# LevelUpDiag-Koali
+# LevelUpDiag Neutral Frame
 
-LevelUpDiag-Koali est un appendice autonome de diagnostic et de validation utilisé à côté de kOA-Linux pendant le développement.
+**Version:** 1.0.0  
+**Mode:** copy-in diagnostics frame  
+**Runtime dependencies:** Python 3.10+ standard library only
 
-Son rôle est simple :
+LevelUpDiag is a neutral diagnostics frame designed to be copied as the `levelupdiag/` directory inside a repository that must be diagnosed.
 
-1. charger une configuration locale ;
-2. lire un manifeste de niveaux ;
-3. lancer une série de scripts `.py`, `.pyw` ou de commandes ;
-4. respecter leur ordre et leurs dépendances simples ;
-5. collecter les sorties et les logs ;
-6. normaliser les verdicts ;
-7. produire une vue cohérente de l'état de la cible.
+It deliberately makes **no assumption** that the target has a web UI, API, backend, frontend, database, service, package manager, test framework, build system, or release process.
 
-LevelUpDiag-Koali n'est pas une partie de kOA-Linux. Il n'est pas requis au runtime et doit être retiré avant la préparation d'une livraison.
+The frame provides a small universal baseline, capability discovery, structured evidence, declared-validator execution, campaign aggregation, process isolation, timeouts, redaction, and extension points. After copying it into a repository, you can keep it generic or adapt it in place to the target.
 
-## Principes
+## Quick start
 
-- le manifeste décrit les niveaux ;
-- chaque niveau reste exécutable indépendamment ;
-- le runner orchestre sans réimplémenter la logique des checks ;
-- les chemins et commandes locaux viennent de la configuration ;
-- les résultats distinguent clairement un échec de la cible d'un problème d'environnement ;
-- les logs sont regroupés par exécution ;
-- la GUI est une façade pratique, pas une autorité ;
-- kOA-Linux reste la cible observée et conserve ses propres règles.
-
-## Structure documentaire
-
-La documentation détaillée commence dans [`docs/README.md`](docs/README.md).
-
-Les documents principaux sont :
-
-- [`docs/01-overview.md`](docs/01-overview.md)
-- [`docs/02-architecture.md`](docs/02-architecture.md)
-- [`docs/03-levels-and-checks.md`](docs/03-levels-and-checks.md)
-- [`docs/04-configuration.md`](docs/04-configuration.md)
-- [`docs/05-execution-and-ordering.md`](docs/05-execution-and-ordering.md)
-- [`docs/06-results-and-logs.md`](docs/06-results-and-logs.md)
-- [`docs/07-koa-linux-integration.md`](docs/07-koa-linux-integration.md)
-- [`docs/08-campaigns.md`](docs/08-campaigns.md)
-- [`docs/09-failure-and-blocking-model.md`](docs/09-failure-and-blocking-model.md)
-- [`docs/10-security.md`](docs/10-security.md)
-- [`docs/11-cli-and-gui.md`](docs/11-cli-and-gui.md)
-- [`docs/12-testing.md`](docs/12-testing.md)
-- [`docs/13-removal-before-delivery.md`](docs/13-removal-before-delivery.md)
-- [`docs/14-development.md`](docs/14-development.md)
-- [`docs/15-reference.md`](docs/15-reference.md)
-
-## Modèle mental
+Recommended layout:
 
 ```text
-config locale
-     +
-manifest
-     ↓
-runner
-     ↓
-N00 → N01 → N02 → ...
-     ↓
-résultats
-     ↓
-logs + rapport global
+my-target-repository/
+├── ... target files ...
+└── levelupdiag/            <- copy this whole directory here
 ```
 
-Un niveau peut lui-même appeler un script public de kOA-Linux, `pytest`, `cargo`, un outil système ou une autre commande autorisée.
+Run from any directory:
 
-## Répertoires runtime
+```bash
+python levelupdiag/levelupdiag.py doctor
+python levelupdiag/levelupdiag.py run baseline
+python levelupdiag/levelupdiag.py run standard
+```
 
-Par défaut, les fichiers produits localement sont placés sous :
+On Windows you can also use:
+
+```bat
+levelupdiag\RUN_LEVELUPDIAG.bat standard
+```
+
+On POSIX systems:
+
+```bash
+./levelupdiag/RUN_LEVELUPDIAG.sh standard
+```
+
+By default the target repository is the **parent directory of `levelupdiag/`**. Override it with `--target` when needed.
+
+Generated evidence is written under:
 
 ```text
-.levelupdiag/
+<target>/.levelupdiag/
 ```
 
-Ce répertoire contient l'état d'exécution, les logs et les rapports locaux. Il n'est pas destiné à être livré avec kOA-Linux.
+The source frame itself remains under `levelupdiag/` and should normally be committed. Runtime evidence under `.levelupdiag/` should normally be ignored.
 
-## État du projet
+## Universal levels
 
-LevelUpDiag-Koali est une adaptation spécialisée de LevelUpDiag pour accompagner le développement de kOA-Linux sans fusionner les deux dépôts.
+| ID | Level | Purpose |
+|---|---|---|
+| N00 | Diagnostic Integrity | Validate the diagnostics frame itself before trusting its output. |
+| N01 | Target Context | Resolve target, runtime context, VCS state, paths and basic executability. |
+| N02 | Repository Inventory | Build bounded, technology-neutral evidence about repository shape and capabilities. |
+| N03 | Repository Hygiene | Detect broken links, conflict markers, path hazards and oversized source artifacts. |
+| N04 | Tooling Discovery | Detect manifests, lock files, automation surfaces and candidate local tools without assuming they are required. |
+| N05 | Declared Validations | Run only validators explicitly declared in configuration. Empty by default. |
+| N06 | Security Hygiene | Perform conservative, bounded hygiene checks without claiming a security audit. |
+
+There is intentionally **no universal “API”, “UI”, “service”, “accessibility”, “visual”, or “release” level**. Add such levels only when the target actually has those contracts.
+
+## Campaigns
+
+`baseline` runs only universal read-oriented diagnostics. `standard` also evaluates the declared-validator level; when none are declared it performs no guessed command and remains valid. `deep` is provided as an extension campaign and currently has the same neutral set as `standard`; adapt it only when deeper target-specific checks are justified.
+
+Campaign verdicts preserve distinctions between:
+
+```text
+PASS / WARN / FAIL / SKIP / BLOCKED / PARTIAL / ERROR / INFRA_ERROR / CONFIG_ERROR
+```
+
+A required `SKIP`, `BLOCKED`, `PARTIAL`, or missing result is never silently treated as a pass.
+
+## Configuration
+
+The committed file `levelupdiag.config.json` contains neutral defaults. Optional machine-local overrides can be put in `levelupdiag.config.local.json` (ignored by default).
+
+Most repositories need **no configuration** for the baseline campaign.
+
+Declared validators are intentionally explicit:
+
+```json
+{
+  "validators": [
+    {
+      "id": "project-tests",
+      "name": "Project test suite",
+      "command": ["your-test-command", "--flag"],
+      "cwd": ".",
+      "required": true,
+      "timeout_seconds": 900,
+      "mutates_target": false,
+      "network": false
+    }
+  ]
+}
+```
+
+LevelUpDiag never invents a test/build command and executes it merely because a manifest exists. Discovery and execution are separate phases.
+
+## Safety model
+
+Default behavior:
+
+- target is treated as read-only except for `.levelupdiag/` evidence;
+- commands use argument arrays and `shell=False`;
+- validator commands must be declared explicitly;
+- validator declarations marked `mutates_target: true` are blocked unless mutation is explicitly enabled;
+- validator declarations marked `network: true` are blocked unless network is explicitly enabled;
+- every external command has a timeout;
+- stdout/stderr stored in reports is bounded and redacted;
+- target paths are normalized and checked;
+- tracked VCS state is sampled before/after a campaign to detect unexpected changes;
+- the diagnostics source directory and generated evidence directory are excluded from repository scans by default.
+
+This frame cannot sandbox arbitrary commands. A declared validator has the same OS permissions as the user running it.
+
+## Exit codes
+
+| Code | Meaning |
+|---:|---|
+| 0 | Campaign accepted (`PASS` or `WARN`) |
+| 10 | Target validation failure (`FAIL`) |
+| 20 | Required evidence incomplete or blocked |
+| 30 | Configuration, infrastructure, or diagnostics-tool error |
+| 64 | CLI usage error |
+
+## Adapting after copy
+
+Read `docs/ADAPTATION_GUIDE.md` before adding target-specific diagnostics. The key rule is: **model real target contracts; do not preserve generic levels merely for symmetry.**
+
+Useful commands:
+
+```bash
+python levelupdiag/levelupdiag.py list
+python levelupdiag/levelupdiag.py show-config
+python levelupdiag/levelupdiag.py run N03
+python levelupdiag/levelupdiag.py run standard --jobs 4
+python levelupdiag/levelupdiag.py verify-run .levelupdiag/runs/<run-id>/summary.json
+```
+
+## Repository identity
+
+This is a neutral source frame, not a central runtime dependency. Once copied into a target repository, the copy may evolve independently.

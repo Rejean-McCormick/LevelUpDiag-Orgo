@@ -1,159 +1,145 @@
 {
-  "schema": "levelupdiag.koali.manifest.v1",
-  "suite_name": "LevelUpDiag-Koali",
-  "version": "1.0.0",
-  "repository_mode": "standalone-development-appendix",
-  "config_file": "levelupdiag.config.local.json",
-  "config_example_file": "levelupdiag.config.example.json",
+  "schema": "levelupdiag.manifest.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "suite_name": "LevelUpDiag Neutral Frame",
+  "suite_version": "1.0.0",
+  "repository_mode": "copy-in-neutral-diagnostics-frame",
   "control_dir_default": ".levelupdiag",
   "levels": [
     {
       "id": "N00",
-      "name": "Control Panel",
-      "file": "levels/N00_control_panel.pyw",
-      "enabled": true,
-      "required": false,
+      "name": "Diagnostic Integrity",
+      "module": "levels.n00_diagnostic_integrity",
+      "category": "diagnostics",
+      "order": 0,
+      "required": true,
       "depends_on": [],
       "timeout_seconds": 60,
-      "purpose": "Self-check léger de LevelUpDiag-Koali et point de contrôle local."
+      "parallel_safe": true,
+      "purpose": "Validate the diagnostics frame before trusting its output."
     },
     {
       "id": "N01",
-      "name": "Environment",
-      "file": "levels/N01_environment.pyw",
-      "enabled": true,
+      "name": "Target Context",
+      "module": "levels.n01_target_context",
+      "category": "context",
+      "order": 10,
       "required": true,
-      "depends_on": [],
-      "timeout_seconds": 120,
-      "purpose": "Vérifier Python, les chemins configurés et les outils requis."
+      "depends_on": [
+        "N00"
+      ],
+      "timeout_seconds": 60,
+      "parallel_safe": true,
+      "purpose": "Resolve target, runtime context, VCS state, paths and basic executability."
     },
     {
       "id": "N02",
-      "name": "Repository",
-      "file": "levels/N02_repository.pyw",
-      "enabled": true,
+      "name": "Repository Inventory",
+      "module": "levels.n02_repository_inventory",
+      "category": "inventory",
+      "order": 20,
       "required": true,
       "depends_on": [
         "N01"
       ],
       "timeout_seconds": 120,
-      "purpose": "Observer le checkout kOA-Linux et son état sans le modifier."
+      "parallel_safe": true,
+      "purpose": "Collect bounded technology-neutral evidence about repository shape and capabilities."
     },
     {
       "id": "N03",
-      "name": "Documentation",
-      "file": "levels/N03_documentation.pyw",
-      "enabled": true,
+      "name": "Repository Hygiene",
+      "module": "levels.n03_repository_hygiene",
+      "category": "hygiene",
+      "order": 30,
       "required": true,
       "depends_on": [
-        "N01",
         "N02"
       ],
-      "timeout_seconds": 300,
-      "purpose": "Exécuter la validation documentaire publique configurée."
+      "timeout_seconds": 180,
+      "parallel_safe": true,
+      "purpose": "Detect repository-level integrity and hygiene hazards."
     },
     {
       "id": "N04",
-      "name": "Contracts",
-      "file": "levels/N04_contracts.pyw",
-      "enabled": true,
+      "name": "Tooling Discovery",
+      "module": "levels.n04_tooling_discovery",
+      "category": "tooling",
+      "order": 40,
       "required": true,
       "depends_on": [
-        "N01",
         "N02"
       ],
-      "timeout_seconds": 300,
-      "purpose": "Exécuter la validation publique des contrats."
+      "timeout_seconds": 120,
+      "parallel_safe": true,
+      "purpose": "Discover project manifests, automation surfaces and candidate tools without making them mandatory."
     },
     {
       "id": "N05",
-      "name": "Components",
-      "file": "levels/N05_components.pyw",
-      "enabled": true,
+      "name": "Declared Validations",
+      "module": "levels.n05_declared_validations",
+      "category": "validation",
+      "order": 50,
       "required": true,
       "depends_on": [
         "N01",
         "N02"
       ],
-      "timeout_seconds": 600,
-      "purpose": "Exécuter les validations publiques des composants."
+      "timeout_seconds": 1800,
+      "parallel_safe": false,
+      "purpose": "Execute only validations explicitly declared by the local diagnostics configuration."
     },
     {
       "id": "N06",
-      "name": "Integrations",
-      "file": "levels/N06_integrations.pyw",
-      "enabled": true,
-      "required": false,
+      "name": "Security Hygiene",
+      "module": "levels.n06_security_hygiene",
+      "category": "security_hygiene",
+      "order": 60,
+      "required": true,
       "depends_on": [
-        "N04",
-        "N05"
-      ],
-      "timeout_seconds": 600,
-      "purpose": "Exécuter les validations publiques d'intégrations lorsqu'elles sont configurées."
-    },
-    {
-      "id": "N07",
-      "name": "Profiles",
-      "file": "levels/N07_profiles.pyw",
-      "enabled": true,
-      "required": false,
-      "depends_on": [
-        "N04",
-        "N05"
-      ],
-      "timeout_seconds": 600,
-      "purpose": "Exécuter les validations publiques de profils lorsqu'elles sont configurées."
-    },
-    {
-      "id": "N08",
-      "name": "Security",
-      "file": "levels/N08_security.pyw",
-      "enabled": true,
-      "required": false,
-      "depends_on": [
-        "N01",
         "N02"
       ],
-      "timeout_seconds": 900,
-      "purpose": "Exécuter la validation sécurité publique configurée."
-    },
-    {
-      "id": "N09",
-      "name": "Offline",
-      "file": "levels/N09_offline.pyw",
-      "enabled": true,
-      "required": false,
-      "depends_on": [
-        "N01",
-        "N02"
-      ],
-      "timeout_seconds": 900,
-      "purpose": "Exécuter la validation offline publique configurée."
-    },
-    {
-      "id": "N10",
-      "name": "System",
-      "file": "levels/N10_system.pyw",
-      "enabled": true,
-      "required": false,
-      "depends_on": [
-        "N01",
-        "N02"
-      ],
-      "timeout_seconds": 1200,
-      "purpose": "Exécuter la validation système publique configurée."
-    },
-    {
-      "id": "N11",
-      "name": "Delivery",
-      "file": "levels/N11_delivery.pyw",
-      "enabled": true,
-      "required": false,
-      "depends_on": [
-        "N01"
-      ],
-      "timeout_seconds": 300,
-      "purpose": "Vérifier l'absence de l'appendice dans une cible de livraison."
+      "timeout_seconds": 180,
+      "parallel_safe": true,
+      "purpose": "Perform bounded conservative hygiene checks without claiming a security audit."
     }
-  ]
+  ],
+  "campaigns": {
+    "baseline": {
+      "description": "Universal read-oriented diagnostics with no target command execution.",
+      "levels": [
+        "N00",
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N06"
+      ]
+    },
+    "standard": {
+      "description": "Baseline plus explicitly declared validators.",
+      "levels": [
+        "N00",
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06"
+      ]
+    },
+    "deep": {
+      "description": "Neutral extension campaign; customize only with target-justified checks.",
+      "levels": [
+        "N00",
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N06"
+      ]
+    }
+  }
 }
