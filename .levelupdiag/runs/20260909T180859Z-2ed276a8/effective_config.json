@@ -1,6 +1,6 @@
 {
   "schema": "levelupdiag.config.v2",
-  "target_repo_root": "C:/mycode/Orgo/Orgo",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
   "control_dir": ".levelupdiag",
   "execution": {
     "max_parallel": 4,
@@ -8,7 +8,7 @@
     "fail_fast": false,
     "capture_limit_kb": 256,
     "protect_tracked_files": true,
-    "allow_target_mutation": false,
+    "allow_target_mutation": true,
     "allow_network": false
   },
   "scan": {

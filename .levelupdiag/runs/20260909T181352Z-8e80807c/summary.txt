@@ -1,0 +1,10 @@
+LevelUpDiag security - BLOCKED
+Run: 20260909T181352Z-8e80807c
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N02  PASS         Repository Inventory
+N06  PASS         Security Hygiene
+N07  PASS         Orgo preflight
+N13  BLOCKED      Dependency audit (moderate+)

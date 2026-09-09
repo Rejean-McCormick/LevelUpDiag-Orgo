@@ -1,0 +1,9 @@
+LevelUpDiag quick - BLOCKED
+Run: 20260909T180804Z-a3563187
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N07  PASS         Orgo preflight
+N08  BLOCKED      Schema, architecture and types
+N09  BLOCKED      Business unit tests
