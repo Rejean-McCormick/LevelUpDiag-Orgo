@@ -6,7 +6,7 @@ from pathlib import Path
 from .config import load_config
 from .manifest import load_manifest, level_map
 from .report import Report
-from .util import utc_now, write_json
+from .util import utc_now, write_json, redact
 
 
 def run_worker(tool_root: Path, level_id: str, run_id: str, output: Path, target_override=None):
@@ -24,10 +24,10 @@ def run_worker(tool_root: Path, level_id: str, run_id: str, output: Path, target
         report.add(
             "diagnostics.level.exception", "ERROR", "diagnostics",
             f"Unhandled exception inside {level_id}",
-            evidence=f"{type(e).__name__}: {e}",
+            evidence=redact(f"{type(e).__name__}: {e}"),
             recommendation="Inspect the level traceback artifact and fix the diagnostics code."
         )
-        tb = traceback.format_exc()
+        tb = redact(traceback.format_exc())
         tb_path = output.parent / "traceback.txt"
         tb_path.parent.mkdir(parents=True, exist_ok=True)
         tb_path.write_text(tb, encoding="utf-8")

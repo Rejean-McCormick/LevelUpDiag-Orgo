@@ -2,11 +2,19 @@
   "schema": "levelupdiag.manifest.v2",
   "standard": "LevelUpDiag",
   "standard_version": "1.0.0",
-  "suite_name": "LevelUpDiag Neutral Frame",
-  "suite_version": "1.0.0",
-  "repository_mode": "copy-in-neutral-diagnostics-frame",
+  "suite_name": "LevelUpDiag-Orgo",
+  "suite_version": "1.2.0",
+  "repository_mode": "standalone-external-target",
   "control_dir_default": ".levelupdiag",
   "levels": [
+    {"id":"N07","name":"Orgo preflight","module":"levels.orgo_validation","order":70,"required":true,"depends_on":["N00","N01"],"timeout_seconds":60,"parallel_safe":true},
+    {"id":"N08","name":"Schema, architecture and types","module":"levels.orgo_validation","order":80,"required":true,"depends_on":["N07"],"timeout_seconds":3700,"parallel_safe":false},
+    {"id":"N09","name":"Business unit tests","module":"levels.orgo_validation","order":90,"required":true,"depends_on":["N08"],"timeout_seconds":1250,"parallel_safe":false},
+    {"id":"N10","name":"Disposable PGlite integration","module":"levels.orgo_validation","order":100,"required":true,"depends_on":["N08"],"timeout_seconds":1250,"parallel_safe":false},
+    {"id":"N11","name":"Native PostgreSQL integration","module":"levels.orgo_validation","order":110,"required":true,"depends_on":["N08"],"timeout_seconds":2500,"parallel_safe":false},
+    {"id":"N12","name":"API and web production builds","module":"levels.orgo_validation","order":120,"required":true,"depends_on":["N08"],"timeout_seconds":1250,"parallel_safe":false},
+    {"id":"N13","name":"Dependency audit (moderate+)","module":"levels.orgo_validation","order":130,"required":true,"depends_on":["N07"],"timeout_seconds":1250,"parallel_safe":false},
+    {"id":"N14","name":"Local acceptance boundary","module":"levels.orgo_validation","order":140,"required":true,"depends_on":["N07"],"timeout_seconds":60,"parallel_safe":false},
     {
       "id": "N00",
       "name": "Diagnostic Integrity",
@@ -106,6 +114,12 @@
     }
   ],
   "campaigns": {
+    "quick": {"description":"Preflight, generated client, architecture, types and unit tests.","levels":["N07","N08","N09"]},
+    "database": {"description":"Real PostgreSQL migration and integration on an explicitly selected disposable database.","levels":["N09","N11"]},
+    "embedded": {"description":"Disposable PGlite integration, not native concurrency acceptance.","levels":["N09","N10"]},
+    "build": {"description":"Production API and frontend compilation.","levels":["N12"]},
+    "security": {"description":"Repository hygiene and npm vulnerability audit, no automatic fixes.","levels":["N06","N13"]},
+    "acceptance": {"description":"Automated deep validation plus explicit manual acceptance boundary (BLOCKED until local review).","levels":["N09","N11","N12","N13","N14"]},
     "baseline": {
       "description": "Universal read-oriented diagnostics with no target command execution.",
       "levels": [
@@ -118,26 +132,26 @@
       ]
     },
     "standard": {
-      "description": "Baseline plus explicitly declared validators.",
+      "description": "Orgo static checks and business unit tests plus baseline.",
       "levels": [
         "N00",
         "N01",
         "N02",
         "N03",
         "N04",
-        "N05",
+        "N08", "N09",
         "N06"
       ]
     },
     "deep": {
-      "description": "Neutral extension campaign; customize only with target-justified checks.",
+      "description": "Orgo native database, unit tests, builds and dependency audit. Explicit local permissions required.",
       "levels": [
         "N00",
         "N01",
         "N02",
         "N03",
         "N04",
-        "N05",
+        "N08", "N09", "N11", "N12", "N13",
         "N06"
       ]
     }

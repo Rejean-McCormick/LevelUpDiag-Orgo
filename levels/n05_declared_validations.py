@@ -7,7 +7,7 @@ from levelupdiag_core.commands import normalize_command, run_command
 def run(cfg, report):
     validators=[v for v in cfg.get("validators",[]) if v.get("enabled",True)]
     if not validators:
-        report.add("validators.declared.present", "PASS", "validation", "No validators are declared; the neutral frame correctly executed no guessed target command.", recommendation="Declare real public validators only if deeper target validation is required.")
+        report.add("validators.declared.present", "BLOCKED", "validation", "No custom validators are declared. This level provides no Orgo validation evidence.", recommendation="Use the Orgo quick, embedded or database campaign instead.")
         return
     target=Path(cfg["_target_root"]); execution=cfg.get("execution",{}); limit=execution.get("capture_limit_kb",256)
     for v in validators:
@@ -37,5 +37,5 @@ def run(cfg, report):
         elif result["exit_code"]==0:
             verdict="PASS"
         else:
-            verdict="FAIL" if required else "WARN"
+            verdict="FAIL"
         report.add(f"validator.{vid}.result", verdict, "validation", f"Validator '{name}' completed." if not result["timed_out"] else f"Validator '{name}' timed out.", evidence=result, recommendation=None if verdict=="PASS" else "Inspect the validator output and target-specific documentation.")

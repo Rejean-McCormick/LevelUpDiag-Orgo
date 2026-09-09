@@ -8,10 +8,7 @@ from levelupdiag_core.vcs import git_info
 def run(cfg, report):
     target = Path(cfg["_target_root"]); tool = Path(cfg["_tool_root"]); control = Path(cfg["_control_root"])
     report.add("target.root.exists", "PASS" if target.is_dir() else "CONFIG_ERROR", "target", "Target repository root is available.", path=str(target))
-    if tool.parent.resolve() == target.resolve():
-        report.add("target.layout.copy_in", "PASS", "target", "LevelUpDiag is installed directly under the target repository root.")
-    else:
-        report.add("target.layout.copy_in", "WARN", "target", "LevelUpDiag is diagnosing an explicitly selected target rather than its parent repository.", evidence={"tool_root":str(tool),"target_root":str(target)})
+    report.add("target.layout.standalone", "PASS", "target", "Orgo and LevelUpDiag are separate applications; diagnostic reports remain in LevelUpDiag.", evidence={"tool_root":str(tool),"target_root":str(target),"control_root":str(control)})
     report.add("runtime.platform.detected", "PASS", "environment", "Runtime platform detected.", evidence={"system":platform.system(),"release":platform.release(),"python":sys.version.split()[0]})
     gi = git_info(target)
     if gi.get("repository"):

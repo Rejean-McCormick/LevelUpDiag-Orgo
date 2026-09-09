@@ -13,8 +13,8 @@ from .worker import run_worker
 
 
 def parser():
-    p = argparse.ArgumentParser(prog="levelupdiag", description="Neutral copy-in diagnostics frame")
-    p.add_argument("--target", help="Target repository root (default: parent of levelupdiag directory)")
+    p = argparse.ArgumentParser(prog="levelupdiag", description="Standalone LevelUpDiag-Orgo")
+    p.add_argument("--target", help="Separate Orgo repository root; required unless configured locally")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("doctor", help="Validate LevelUpDiag setup and target resolution")
     sub.add_parser("list", help="List levels and campaigns")

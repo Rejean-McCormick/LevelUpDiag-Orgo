@@ -20,7 +20,7 @@ def utc_now():
 
 
 def read_json(path: Path):
-    with path.open("r", encoding="utf-8") as f:
+    with path.open("r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 
@@ -72,6 +72,10 @@ def sha256_file(path: Path, max_bytes=None):
 
 
 def redact(text: str, replacement="<REDACTED>"):
+    for key, value in os.environ.items():
+        if len(value) >= 4 and re.search(r'password|secret|token|database_url|api_?key', key, re.I):
+            text = text.replace(value, replacement)
+    text = re.sub(r'(?i)\b([a-z][a-z0-9+.-]*://)[^\s/"\'<>]+@', lambda m: m.group(1)+replacement+'@', text)
     text = SECRET_VALUE_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}{replacement}", text)
     text = BEARER_RE.sub(f"Bearer {replacement}", text)
     return text

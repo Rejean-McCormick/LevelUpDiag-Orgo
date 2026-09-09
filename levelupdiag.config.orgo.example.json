@@ -1,0 +1,7 @@
+{
+  "target_repo_root": "C:/mycode/Orgo/Orgo",
+  "execution": {
+    "allow_target_mutation": true,
+    "allow_network": false
+  }
+}

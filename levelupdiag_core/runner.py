@@ -19,7 +19,7 @@ from .verdicts import campaign_verdict, exit_code
 from .vcs import git_info
 
 FINAL = {"PASS","WARN","FAIL","SKIP","BLOCKED","PARTIAL","ERROR","INFRA_ERROR","CONFIG_ERROR"}
-HARD_DEP_BLOCK = {"BLOCKED","ERROR","INFRA_ERROR","CONFIG_ERROR"}
+HARD_DEP_BLOCK = {"FAIL","SKIP","PARTIAL","BLOCKED","ERROR","INFRA_ERROR","CONFIG_ERROR"}
 
 
 def make_run_id():
@@ -134,7 +134,7 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
             if exclusive and not active:
                 active[exclusive["id"]] = pool.submit(launch, exclusive)
                 pending.remove(exclusive["id"]); launched = True
-            elif not exclusive:
+            elif not exclusive and not any(not by_id[lid].get('parallel_safe', True) for lid in active):
                 capacity = max_jobs - len(active)
                 for meta in ready[:max(0, capacity)]:
                     active[meta["id"]] = pool.submit(launch, meta)
@@ -151,6 +151,9 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
         pool.shutdown(wait=True)
 
     ordered = [results[m["id"]] for m in levels]
+    # Dependency-blocked levels never launched a worker, but still need durable evidence.
+    for result in ordered:
+        write_json(run_root / 'levels' / result['level_id'] / 'result.json', result)
     required_map = {m["id"]:bool(m.get("required",False)) for m in levels}
     verdict = campaign_verdict(ordered, required_map)
 

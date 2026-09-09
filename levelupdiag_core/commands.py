@@ -5,6 +5,8 @@ import shlex
 import shutil
 import subprocess
 import time
+import signal
+import tempfile
 from pathlib import Path
 from .util import redact, tail_text
 
@@ -30,35 +32,43 @@ def run_command(command, *, cwd: Path, timeout_seconds: int, capture_limit_kb=25
     if not argv:
         raise ValueError("empty command")
     started = time.monotonic()
-    try:
-        cp = subprocess.run(
+    limit = max(1, int(capture_limit_kb)) * 1024
+    with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+        cp = subprocess.Popen(
             argv,
             cwd=str(cwd),
             env=env,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout_seconds,
+            stdout=stdout_file,
+            stderr=stderr_file,
             shell=False,
-            check=False,
+            start_new_session=os.name != 'nt',
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0,
         )
-        timed_out = False
-        code = cp.returncode
-        out, err = cp.stdout or "", cp.stderr or ""
-    except subprocess.TimeoutExpired as e:
-        timed_out = True
-        code = None
-        out = e.stdout.decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
-        err = e.stderr.decode("utf-8", "replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
+        try:
+            code = cp.wait(timeout=timeout_seconds)
+            timed_out = False
+        except subprocess.TimeoutExpired:
+            timed_out, code = True, None
+            if os.name == 'nt':
+                subprocess.run(['taskkill', '/PID', str(cp.pid), '/T', '/F'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15, check=False)
+            else:
+                try: os.killpg(cp.pid, signal.SIGKILL)
+                except ProcessLookupError: pass
+            if cp.poll() is None: cp.kill()
+            cp.wait(timeout=15)
+        def bounded_read(stream):
+            size = stream.seek(0, os.SEEK_END)
+            # A small overlap lets redaction match secrets around the final capture boundary.
+            stream.seek(max(0, size-limit-16384))
+            return stream.read().decode('utf-8', errors='replace')
+        out, err = bounded_read(stdout_file), bounded_read(stderr_file)
     duration = round(time.monotonic() - started, 3)
     if redact_output:
         out, err = redact(out), redact(err)
-    limit = int(capture_limit_kb) * 1024
     return {
-        "argv": argv,
+        "argv": [redact(arg) for arg in argv] if redact_output else argv,
         "cwd": str(cwd),
         "exit_code": code,
         "timed_out": timed_out,
