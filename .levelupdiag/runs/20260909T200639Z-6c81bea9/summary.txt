@@ -1,0 +1,10 @@
+LevelUpDiag security - FAIL
+Run: 20260909T200639Z-6c81bea9
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N02  PASS         Repository Inventory
+N06  PASS         Security Hygiene
+N07  PASS         Orgo preflight
+N13  FAIL         Dependency audit (moderate+)

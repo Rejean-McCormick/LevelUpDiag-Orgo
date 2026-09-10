@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('baseline','quick','standard','embedded','database','build','security','deep','acceptance')]
+  [ValidateSet('baseline','quick','standard','embedded','database','build','security','deep','acceptance','browser')]
   [string]$Campaign = 'quick',
   [string]$Target = ''
 )

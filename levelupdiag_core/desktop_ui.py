@@ -11,6 +11,7 @@ from .config import load_config
 from .manifest import load_manifest
 from .util import read_json, redact
 from .desktop import Session, save_settings, history, report_path
+from .test_runtime import TestRuntime
 
 COLORS = {'PASS':'#178054', 'WARN':'#a16b08', 'FAIL':'#c0353e', 'BLOCKED':'#96630f',
           'ERROR':'#c0353e', 'INFRA_ERROR':'#c0353e', 'CONFIG_ERROR':'#c0353e', 'PARTIAL':'#96630f'}
@@ -20,6 +21,7 @@ class App(tk.Tk):
         super().__init__()
         self.tool = tool
         self.session = Session(tool)
+        self.runtime = TestRuntime(tool)
         self.manifest = load_manifest(tool)
         self.control = None
         self.selected = None
@@ -60,6 +62,14 @@ class App(tk.Tk):
         self.save_button = ttk.Button(config,text='Save settings',command=self.save)
         self.save_button.grid(row=3,column=2,padx=(8,0))
         ttk.Button(config,text='What is a test database?',command=self.database_help).grid(row=4,column=2,padx=(8,0))
+        runtime_bar = ttk.Frame(outer); runtime_bar.pack(fill='x', pady=(10,0))
+        self.start_runtime = ttk.Button(runtime_bar, text='Start Orgo test', command=self.start_test_runtime)
+        self.start_runtime.pack(side='left')
+        self.stop_runtime = ttk.Button(runtime_bar, text='Stop Orgo test', command=self.stop_test_runtime)
+        self.stop_runtime.pack(side='left', padx=8)
+        ttk.Button(runtime_bar, text='Runtime logs', command=self.open_runtime_logs).pack(side='left')
+        self.runtime_status = tk.StringVar(value='Automatic startup: existing orgo-test-postgres container, API 4000, web 3000.')
+        ttk.Label(outer, textvariable=self.runtime_status, wraplength=1000).pack(anchor='w', pady=4)
         run = ttk.Frame(outer); run.pack(fill='x',pady=12)
         ttk.Label(run,text='Campaign').pack(side='left',padx=(0,10))
         self.combo = ttk.Combobox(run,textvariable=self.campaign,values=list(self.manifest['campaigns']),state='readonly',width=20)
@@ -82,6 +92,34 @@ class App(tk.Tk):
         self.detail = self.textbox(result)
         logs = ttk.Frame(self.tabs,padding=8); self.tabs.add(logs,text='Log')
         self.log = self.textbox(logs)
+        self.browser_tab = ttk.Frame(self.tabs, padding=12)
+        self.tabs.add(self.browser_tab, text='Browser settings')
+        self.browser_url = tk.StringVar(value='http://127.0.0.1:3000')
+        self.browser_org = tk.StringVar(value='orgo-e2e')
+        self.browser_email = tk.StringVar(value='e2e@example.test')
+        self.browser_password = tk.StringVar()
+        self.browser_writes = tk.BooleanVar(value=False)
+        self.browser_widgets = []
+        self.browser_tab.columnconfigure(1, weight=1)
+        for row, (label, variable) in enumerate([
+            ('Local Orgo URL', self.browser_url), ('Test organization', self.browser_org),
+            ('Test email', self.browser_email), ('Test password', self.browser_password),
+        ]):
+            ttk.Label(self.browser_tab, text=label).grid(row=row, column=0, sticky='w', padx=(0,12), pady=5)
+            field = ttk.Entry(self.browser_tab, textvariable=variable,
+                              show='•' if variable is self.browser_password else '')
+            field.grid(row=row, column=1, sticky='ew', pady=5)
+            self.browser_widgets.append(field)
+        confirm = ttk.Checkbutton(self.browser_tab,
+            text='This is a disposable test instance. Allow browser tests to create records.',
+            variable=self.browser_writes)
+        confirm.grid(row=4, column=0, columnspan=2, sticky='w', pady=10)
+        self.browser_widgets.append(confirm)
+        ttk.Label(self.browser_tab, wraplength=760, text=(
+            'Install the Playwright overlay and Chromium first. PostgreSQL, the API and the frontend '
+            'must already be running with the test database. These fields stay in memory and are '
+            'passed only to the browser campaign. Failure traces can contain test credentials; keep them private.'
+        )).grid(row=5, column=0, columnspan=2, sticky='w')
         ttk.Label(outer,text='Standalone application · Reports stay in LevelUpDiag · Final acceptance runs locally').pack(anchor='w',pady=(10,0))
         self.protocol('WM_DELETE_WINDOW',self.close)
         try:
@@ -123,6 +161,7 @@ class App(tk.Tk):
 
     def describe(self):
         self.description.set(self.manifest['campaigns'][self.campaign.get()].get('description',''))
+        if self.campaign.get() == 'browser': self.tabs.select(self.browser_tab)
 
     def save(self):
         try:
@@ -133,9 +172,14 @@ class App(tk.Tk):
             messagebox.showerror('Configuration',redact(str(error))); return False
 
     def run(self):
+        if self.runtime.busy:
+            messagebox.showinfo('Orgo startup', 'Wait for automatic startup or shutdown to finish.'); return
         if self.session.running or not self.save(): return
         try:
-            self.session.start(self.campaign.get(),self.target.get(),self.database.get())
+            settings = dict(url=self.browser_url.get(), organization=self.browser_org.get(),
+                            email=self.browser_email.get(), password=self.browser_password.get(),
+                            allow_writes=self.browser_writes.get())
+            self.session.start(self.campaign.get(),self.target.get(),self.database.get(), browser=settings)
             self.busy(True); self.status.set('Campaign running… Commands may take several minutes.')
             self.put(self.log,'\nCampaign: '+self.campaign.get()+'\n')
         except Exception as error: messagebox.showerror('Execution',redact(str(error)))
@@ -144,10 +188,24 @@ class App(tk.Tk):
         for widget in (self.path_entry,self.browse,self.mutation_box,self.network_box,self.database_entry,self.save_button,self.run_button):
             widget.configure(state='disabled' if active else 'normal')
         self.combo.configure(state='disabled' if active else 'readonly')
+        for widget in self.browser_widgets: widget.configure(state='disabled' if active else 'normal')
         if active: self.progress.start(15)
         else: self.progress.stop()
 
     def poll(self):
+        try:
+            while True:
+                kind, value = self.runtime.events.get_nowait()
+                if value: self.runtime_status.set(value)
+                if kind == 'error': messagebox.showerror('Orgo test runtime', value)
+                if kind == 'ready': self.browser_url.set('http://127.0.0.1:3000')
+        except queue.Empty: pass
+        running = self.session.running
+        self.start_runtime.configure(state='disabled' if running or self.runtime.busy or self.runtime.processes else 'normal')
+        self.stop_runtime.configure(state='disabled' if running or not (self.runtime.busy or self.runtime.processes) else 'normal')
+        if self.runtime.ready and any(p.poll() is not None for p in self.runtime.processes):
+            self.runtime.ready = False
+            self.runtime_status.set('An Orgo process exited. Check Runtime logs, then stop and restart Orgo test.')
         try:
             while True:
                 kind,value = self.session.events.get_nowait()
@@ -190,10 +248,33 @@ class App(tk.Tk):
             else: subprocess.Popen(['open' if sys.platform=='darwin' else 'xdg-open',str(self.control)])
         except OSError as error: messagebox.showerror('Reports',str(error))
 
+    def start_test_runtime(self):
+        if self.session.running: return
+        try:
+            self.runtime.start(self.target.get())
+            self.runtime_status.set('Starting Orgo test…')
+        except Exception as error: messagebox.showerror('Orgo test runtime', str(error))
+
+    def stop_test_runtime(self):
+        if self.session.running: return
+        self.runtime_status.set('Stopping Orgo test…')
+        self.runtime.stop()
+
+    def open_runtime_logs(self):
+        directory = self.runtime.log_dir
+        if directory is None:
+            messagebox.showinfo('Runtime logs', 'Start Orgo test first.'); return
+        try:
+            if os.name == 'nt': os.startfile(str(directory))
+            else: subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', str(directory)])
+        except OSError as error: messagebox.showerror('Runtime logs', str(error))
+
     def close(self):
         if self.session.running:
             messagebox.showinfo('Campaign running','Wait for the campaign to finish before closing the console.'); return
-        self.database.set(''); self.destroy()
+        if self.runtime.busy or self.runtime.processes:
+            messagebox.showinfo('Orgo test runtime', 'Click Stop Orgo test and wait for shutdown before closing the console. PostgreSQL will remain available.'); return
+        self.database.set(''); self.browser_password.set(''); self.destroy()
 
 def main(tool):
     App(tool).mainloop()

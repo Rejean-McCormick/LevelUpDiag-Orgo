@@ -1,0 +1,10 @@
+LevelUpDiag embedded - WARN
+Run: 20260909T214105Z-a841beeb
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N07  PASS         Orgo preflight
+N08  PASS         Schema, architecture and types
+N09  PASS         Business unit tests
+N10  WARN         Disposable PGlite integration

@@ -7,6 +7,7 @@
   "repository_mode": "standalone-external-target",
   "control_dir_default": ".levelupdiag",
   "levels": [
+    {"id":"N15","name":"Playwright browser acceptance","module":"levels.orgo_browser","order":150,"required":true,"depends_on":["N07"],"timeout_seconds":950,"parallel_safe":false},
     {"id":"N07","name":"Orgo preflight","module":"levels.orgo_validation","order":70,"required":true,"depends_on":["N00","N01"],"timeout_seconds":60,"parallel_safe":true},
     {"id":"N08","name":"Schema, architecture and types","module":"levels.orgo_validation","order":80,"required":true,"depends_on":["N07"],"timeout_seconds":3700,"parallel_safe":false},
     {"id":"N09","name":"Business unit tests","module":"levels.orgo_validation","order":90,"required":true,"depends_on":["N08"],"timeout_seconds":1250,"parallel_safe":false},
@@ -114,6 +115,7 @@
     }
   ],
   "campaigns": {
+    "browser": {"description":"Seven Chromium journeys against a running local test instance; separate from deep and manual acceptance.","levels":["N15"]},
     "quick": {"description":"Preflight, generated client, architecture, types and unit tests.","levels":["N07","N08","N09"]},
     "database": {"description":"Real PostgreSQL migration and integration on an explicitly selected disposable database.","levels":["N09","N11"]},
     "embedded": {"description":"Disposable PGlite integration, not native concurrency acceptance.","levels":["N09","N10"]},

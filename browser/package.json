@@ -1,0 +1,6 @@
+{
+  "name": "levelupdiag-orgo-browser",
+  "private": true,
+  "scripts": {"test": "playwright test", "report": "playwright show-report"},
+  "devDependencies": {"@playwright/test": "1.63.0"}
+}
