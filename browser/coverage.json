@@ -1,0 +1,28 @@
+{
+  "schema": "orgo.browser-coverage.v1",
+  "project": "chromium",
+  "required_titles": [
+    "invalid credentials show an error and keep the session closed",
+    "login, keyboard search and logout",
+    "cases: create, search and reopen persisted detail",
+    "tasks: create, search and reopen persisted detail",
+    "signals: create, search and reopen persisted detail",
+    "task lifecycle is persisted by the API",
+    "empty search does not display unrelated work",
+    "E01 edit a task and reject a stale revision",
+    "E02 create a linked task from a case and navigate back",
+    "E03 add a comment and display markup as plain text",
+    "E04 assign a task to the current user and find it in My Work",
+    "E05 upload download and remove an attachment",
+    "E06 reject an oversized attachment without persisting it",
+    "E07 publish immutable workflow versions and simulate without effects",
+    "E08 invalid workflow JSON shows an error without publication",
+    "E09 queue offline work and replay it exactly once",
+    "E10 download a task CSV with spreadsheet-safe content",
+    "E11 create a read-only user and enforce permissions in UI and API",
+    "E12 scope a reader to one team and hide another team task",
+    "E13 create a maintenance asset and complete its appointment",
+    "E14 create an education group and its support task",
+    "E15 create a confidential HR case with its work task"
+  ]
+}

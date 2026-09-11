@@ -1,0 +1,13 @@
+LevelUpDiag-Orgo RC overlay — Playwright openWork synchronization
+
+Target root:
+  C:\mycode\Orgo\LevelUpDiag-Orgo
+
+Files replaced:
+  browser\tests\support.ts
+
+Purpose:
+  Synchronize openWork() with Orgo's debounced filtered GET before clicking a work row.
+  No Orgo application source is modified.
+
+After extraction, rerun the complete Chromium suite twice with workers=1 and retries=0.

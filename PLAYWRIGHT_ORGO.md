@@ -1,7 +1,8 @@
 # Orgo browser acceptance
 
 Apply this overlay to `C:\mycode\Orgo\LevelUpDiag-Orgo`, not the Orgo repository.
-It adds the `browser` campaign (N15). Existing `deep` and N14 manual acceptance
+It adds the `browser` campaign (N15), expanded to 22 required journeys.
+See `BROWSER_EXTENDED.md` for the full coverage matrix. Existing `deep` and N14 manual acceptance
 remain unchanged. Test names and instructions are English; locators match the
 French UI present in the supplied Orgo source.
 
@@ -68,7 +69,7 @@ setting the variables above, then select `browser`.
 ## Evidence and interactive debugging
 
 Each campaign writes JSON, HTML and failure artifacts under
-`browser/runs/<run_id>/`. N15 references those files. Seven passes, zero skips,
+`browser/runs/<run_id>/`. N15 references those files. All 22 named tests must pass, with zero skips,
 zero flaky tests and a successful process are required for PASS. Missing setup
 is BLOCKED; zero tests cannot pass.
 
@@ -86,12 +87,12 @@ private and remove secrets before sharing them.
 
 ## Coverage and limits
 
-Seven tests: invalid login; login/keyboard search/logout; case create/search/
-reopen; task create/search/reopen; signal create/search/reopen; task lifecycle;
-empty search. Tests use the real browser and API, with no network mocks.
+The original seven journeys are retained. Fifteen additional journeys cover
+editing, comments, links, assignments, attachments, workflow publication and
+simulation, roles and team scopes, offline replay, CSV, Maintenance, Education
+and HR. See `BROWSER_EXTENDED.md` for precise assertions and boundaries.
 
-This is the first browser acceptance suite, not exhaustive product acceptance.
-Cross-tenant isolation, scoped RBAC, attachments, workflow execution, offline
-replay, providers, mobile layout and Koali hosting need additional scenarios.
-Source review and test discovery were performed during delivery. Actual browser
-execution against your Windows API/database remains local.
+These are not exhaustive product acceptance. Cross-organization isolation,
+worker-driven workflow execution, providers, mobile layout and Koali hosting
+still need additional scenarios. The 22 tests were discovered and typechecked;
+execution of the expanded suite against your Windows API/database remains local.

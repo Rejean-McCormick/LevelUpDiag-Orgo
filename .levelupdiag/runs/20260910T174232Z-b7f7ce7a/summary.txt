@@ -1,0 +1,13 @@
+LevelUpDiag standard - PASS
+Run: 20260910T174232Z-b7f7ce7a
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N02  PASS         Repository Inventory
+N03  PASS         Repository Hygiene
+N04  PASS         Tooling Discovery
+N06  PASS         Security Hygiene
+N07  PASS         Orgo preflight
+N08  PASS         Schema, architecture and types
+N09  PASS         Business unit tests

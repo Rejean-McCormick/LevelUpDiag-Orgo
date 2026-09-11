@@ -1,11 +1,13 @@
 import { test, expect, Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { paceLogin } from './login-pacing';
 
 async function login(page: Page, password = process.env.ORGO_E2E_PASSWORD!) {
   await page.goto('/');
   await page.getByLabel('Organisation', { exact: true }).fill(process.env.ORGO_E2E_ORGANIZATION!);
   await page.getByLabel('Adresse courriel').fill(process.env.ORGO_E2E_EMAIL!);
   await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+  await paceLogin();
   const response = page.waitForResponse(r => r.url().endsWith('/auth/login') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
   return response;
