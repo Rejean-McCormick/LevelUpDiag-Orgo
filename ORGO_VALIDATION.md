@@ -70,10 +70,17 @@ une campagne sans téléchargements.
 
 ## PostgreSQL natif et audit
 
-Créer vous-même une base jetable `orgo_test` et un compte limité à cette base.
+Utiliser une base jetable `orgo_test` et un compte limité à cette base.
 Ne jamais utiliser une base contenant des données utiles. Les migrations historiques
 peuvent être destructives ; le nom « test » n'est qu'un garde-fou.
 Définir `allow_network: true` localement pour PostgreSQL natif et npm audit.
+
+Dans la console desktop, **Prepare PostgreSQL test** démarre et vérifie le conteneur
+existant `orgo-test-postgres` (DB/user/password `orgo_test`, port 5432 local), puis
+remplit le champ Test database URL. Ce bouton ne démarre pas API/web et permet donc
+d'exécuter `database` ou `deep` sans concurrence avec le runtime navigateur.
+`Start Orgo test` réutilise le même conteneur pour les campagnes navigateur et remplit
+aussi le champ, mais il faut arrêter API/web avant une campagne native sur la même DB.
 
 ```powershell
 $env:TEST_DATABASE_URL = 'postgresql://USER:PASSWORD@localhost:5432/orgo_test?connection_limit=5'
@@ -108,3 +115,8 @@ Kristal/Konnaxion, sauvegarde/restauration, charge et déploiement requièrent l
 Les contrats Koali/Capsule doivent être validés avec leurs implémentations réelles.
 N14 reste BLOCKED : une déclaration manuelle n'est pas une preuve automatique.
 Les documents neutres hérités « copy-in » ne sont pas prescriptifs pour cette adaptation.
+
+
+## Validation Common Login
+
+Après l'upgrade Orgo Common Login, la séquence recommandée est : `quick` (types + unit/OIDC), `deep` avec PostgreSQL natif préparé, puis `browser`. Le navigateur contient E16/E17 pour prouver le maintien du login local et l'option SSO au niveau UI. Un vrai fournisseur OIDC reste hors de cette preuve et doit être validé séparément.

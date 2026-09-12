@@ -1,0 +1,9 @@
+LevelUpDiag-Orgo common-login validation overlay v1
+
+Purpose:
+- prepare/reuse the dedicated orgo-test-postgres database from the desktop console;
+- feed its URL into native database/deep campaigns without touching DATABASE_URL;
+- add browser E16/E17 for standalone local login and optional SSO UI contract;
+- keep real IdP interoperability outside this overlay.
+
+No files are copied into the Orgo repository.

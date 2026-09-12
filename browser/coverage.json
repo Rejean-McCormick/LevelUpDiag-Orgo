@@ -23,6 +23,8 @@
     "E12 scope a reader to one team and hide another team task",
     "E13 create a maintenance asset and complete its appointment",
     "E14 create an education group and its support task",
-    "E15 create a confidential HR case with its work task"
+    "E15 create a confidential HR case with its work task",
+    "E16 local login remains available when SSO is unconfigured",
+    "E17 SSO option keeps the local login visible when federation is advertised"
   ]
 }

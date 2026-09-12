@@ -1,8 +1,9 @@
 import tempfile
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from levelupdiag_core.test_runtime import TestRuntime, cli_path, api_is_ready
+from levelupdiag_core.test_runtime import TestRuntime, cli_path, api_is_ready, TEST_DATABASE
 
 
 class RuntimeTests(unittest.TestCase):
@@ -40,6 +41,19 @@ class RuntimeTests(unittest.TestCase):
     def test_missing_dependency_has_clear_error(self):
         with tempfile.TemporaryDirectory() as folder, self.assertRaisesRegex(ValueError, 'npm ci'):
             cli_path(Path(folder), 'api', 'tsx', 'dist/cli.mjs')
+
+
+    def test_managed_database_starts_validated_container(self):
+        runtime = TestRuntime('.')
+        info = [{
+            'Config': {'Env': ['POSTGRES_DB=orgo_test', 'POSTGRES_USER=orgo_test', 'POSTGRES_PASSWORD=orgo_test']},
+            'HostConfig': {'PortBindings': {'5432/tcp': [{'HostIp': '127.0.0.1', 'HostPort': '5432'}]}},
+        }]
+        with patch.object(runtime, 'docker', side_effect=[json.dumps(info), '', '']) as docker:
+            self.assertEqual(runtime.ensure_database(), TEST_DATABASE)
+        self.assertEqual(docker.call_args_list[0].args, ('inspect', 'orgo-test-postgres'))
+        self.assertEqual(docker.call_args_list[1].args, ('start', 'orgo-test-postgres'))
+        self.assertEqual(docker.call_args_list[2].args[:3], ('exec', 'orgo-test-postgres', 'pg_isready'))
 
     def test_cleanup_does_not_kill_already_exited_process(self):
         runtime = TestRuntime('.')

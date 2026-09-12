@@ -95,6 +95,9 @@ class Session:
         if campaign not in load_manifest(self.tool)['campaigns']:
             raise ValueError('Unknown campaign.')
         browser_env = browser_environment(browser or {}) if campaign == 'browser' else {}
+        if (campaign in {'database', 'deep', 'acceptance'} and not database
+                and not os.environ.get('TEST_DATABASE_URL')):
+            raise ValueError('Prepare or enter a dedicated TEST_DATABASE_URL before running a native PostgreSQL campaign.')
         with self._lock:
             if self.running: raise ValueError('A campaign is already running.')
             self.running = True

@@ -1,7 +1,7 @@
 # Orgo browser acceptance
 
 Apply this overlay to `C:\mycode\Orgo\LevelUpDiag-Orgo`, not the Orgo repository.
-It adds the `browser` campaign (N15), expanded to 22 required journeys.
+It adds the `browser` campaign (N15), expanded to 24 required journeys.
 See `BROWSER_EXTENDED.md` for the full coverage matrix. Existing `deep` and N14 manual acceptance
 remain unchanged. Test names and instructions are English; locators match the
 French UI present in the supplied Orgo source.
@@ -69,7 +69,7 @@ setting the variables above, then select `browser`.
 ## Evidence and interactive debugging
 
 Each campaign writes JSON, HTML and failure artifacts under
-`browser/runs/<run_id>/`. N15 references those files. All 22 named tests must pass, with zero skips,
+`browser/runs/<run_id>/`. N15 references those files. All 24 named tests must pass, with zero skips,
 zero flaky tests and a successful process are required for PASS. Missing setup
 is BLOCKED; zero tests cannot pass.
 
@@ -87,12 +87,19 @@ private and remove secrets before sharing them.
 
 ## Coverage and limits
 
-The original seven journeys are retained. Fifteen additional journeys cover
+The original seven journeys are retained. Seventeen additional journeys cover
 editing, comments, links, assignments, attachments, workflow publication and
 simulation, roles and team scopes, offline replay, CSV, Maintenance, Education
-and HR. See `BROWSER_EXTENDED.md` for precise assertions and boundaries.
+HR, and the common-login standalone/optional-SSO UI contract. See `BROWSER_EXTENDED.md` for precise assertions and boundaries.
 
 These are not exhaustive product acceptance. Cross-organization isolation,
 worker-driven workflow execution, providers, mobile layout and Koali hosting
 still need additional scenarios. The 22 tests were discovered and typechecked;
 execution of the expanded suite against your Windows API/database remains local.
+
+
+## Common-login validation
+
+The managed runtime intentionally strips inherited `OIDC_*` variables. E16 therefore proves the standalone path against the real API: `/auth/sso/config` reports federation unavailable, the local form remains visible, and the seeded/local account can still authenticate.
+
+E17 mocks only the public SSO configuration response in the browser to prove that advertising `kOA Identity` adds the SSO button without removing the local login controls. It does **not** test authorization-code exchange, discovery, JWKS, or a real Identity Provider; those remain a separate provider acceptance boundary.

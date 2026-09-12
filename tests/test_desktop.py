@@ -1,8 +1,10 @@
 import json
+import os
 import tempfile
 import unittest
 import queue
 from pathlib import Path
+from unittest.mock import patch
 from levelupdiag_core.desktop import save_settings, report_path, history, Session
 
 class DesktopTests(unittest.TestCase):
@@ -39,6 +41,21 @@ class DesktopTests(unittest.TestCase):
             path=Path(tmp)/'runs'/'bad'; path.mkdir(parents=True)
             (path/'summary.json').write_text('invalid')
             self.assertEqual(history(tmp),[])
+
+
+    def test_native_campaign_requires_database_before_launch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tool,target=self.fixture(Path(tmp))
+            (tool/'levelupdiag_manifest.json').write_text(json.dumps({
+                'schema':'levelupdiag.manifest.v2',
+                'levels':[{'id':'N11','name':'db','order':0,'required':True,'depends_on':[]}],
+                'campaigns':{'database':{'levels':['N11']}}
+            }))
+            session=Session(tool)
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(ValueError, 'TEST_DATABASE_URL'):
+                    session.start('database',str(target))
+            self.assertFalse(session.running)
 
     def test_unknown_campaign_does_not_launch(self):
         with tempfile.TemporaryDirectory() as tmp:

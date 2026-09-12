@@ -1,0 +1,69 @@
+{
+  "schema": "levelupdiag.campaign-summary.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "run_id": "20260911T143733Z-8898913a",
+  "selection": "quick",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
+  "started_at": "2026-09-11T14:37:33+00:00",
+  "ended_at": "2026-09-11T14:37:37+00:00",
+  "verdict": "FAIL",
+  "counts": {
+    "PARTIAL": 0,
+    "SKIP": 0,
+    "INFRA_ERROR": 0,
+    "WARN": 0,
+    "BLOCKED": 1,
+    "CONFIG_ERROR": 0,
+    "PASS": 3,
+    "ERROR": 0,
+    "FAIL": 1
+  },
+  "expected_levels": [
+    "N00",
+    "N01",
+    "N07",
+    "N08",
+    "N09"
+  ],
+  "required_levels": [
+    "N00",
+    "N01",
+    "N07",
+    "N08",
+    "N09"
+  ],
+  "levels": [
+    {
+      "id": "N00",
+      "name": "Diagnostic Integrity",
+      "verdict": "PASS",
+      "result": "levels\\N00\\result.json"
+    },
+    {
+      "id": "N01",
+      "name": "Target Context",
+      "verdict": "PASS",
+      "result": "levels\\N01\\result.json"
+    },
+    {
+      "id": "N07",
+      "name": "Orgo preflight",
+      "verdict": "PASS",
+      "result": "levels\\N07\\result.json"
+    },
+    {
+      "id": "N08",
+      "name": "Schema, architecture and types",
+      "verdict": "FAIL",
+      "result": "levels\\N08\\result.json"
+    },
+    {
+      "id": "N09",
+      "name": "Business unit tests",
+      "verdict": "BLOCKED",
+      "result": "levels\\N09\\result.json"
+    }
+  ],
+  "target_protection": null
+}

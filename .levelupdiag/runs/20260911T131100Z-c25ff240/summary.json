@@ -1,0 +1,61 @@
+{
+  "schema": "levelupdiag.campaign-summary.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "run_id": "20260911T131100Z-c25ff240",
+  "selection": "browser",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
+  "started_at": "2026-09-11T13:11:00+00:00",
+  "ended_at": "2026-09-11T13:14:47+00:00",
+  "verdict": "PASS",
+  "counts": {
+    "SKIP": 0,
+    "FAIL": 0,
+    "WARN": 0,
+    "CONFIG_ERROR": 0,
+    "PASS": 4,
+    "ERROR": 0,
+    "INFRA_ERROR": 0,
+    "PARTIAL": 0,
+    "BLOCKED": 0
+  },
+  "expected_levels": [
+    "N00",
+    "N01",
+    "N07",
+    "N15"
+  ],
+  "required_levels": [
+    "N00",
+    "N01",
+    "N07",
+    "N15"
+  ],
+  "levels": [
+    {
+      "id": "N00",
+      "name": "Diagnostic Integrity",
+      "verdict": "PASS",
+      "result": "levels\\N00\\result.json"
+    },
+    {
+      "id": "N01",
+      "name": "Target Context",
+      "verdict": "PASS",
+      "result": "levels\\N01\\result.json"
+    },
+    {
+      "id": "N07",
+      "name": "Orgo preflight",
+      "verdict": "PASS",
+      "result": "levels\\N07\\result.json"
+    },
+    {
+      "id": "N15",
+      "name": "Playwright browser acceptance",
+      "verdict": "PASS",
+      "result": "levels\\N15\\result.json"
+    }
+  ],
+  "target_protection": null
+}

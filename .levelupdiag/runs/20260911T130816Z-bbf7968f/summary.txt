@@ -1,0 +1,9 @@
+LevelUpDiag quick - BLOCKED
+Run: 20260911T130816Z-bbf7968f
+Target: C:\Users\rejea\AppData\Local\Temp\tmpgodtqggd
+
+N00  PASS         Diagnostic Integrity
+N01  WARN         Target Context
+N07  BLOCKED      Orgo preflight
+N08  BLOCKED      Schema, architecture and types
+N09  BLOCKED      Business unit tests

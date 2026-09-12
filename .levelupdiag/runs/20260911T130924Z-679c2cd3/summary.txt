@@ -1,0 +1,16 @@
+LevelUpDiag deep - PASS
+Run: 20260911T130924Z-679c2cd3
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N02  PASS         Repository Inventory
+N03  PASS         Repository Hygiene
+N04  PASS         Tooling Discovery
+N06  PASS         Security Hygiene
+N07  PASS         Orgo preflight
+N08  PASS         Schema, architecture and types
+N09  PASS         Business unit tests
+N11  PASS         Native PostgreSQL integration
+N12  PASS         API and web production builds
+N13  PASS         Dependency audit (moderate+)

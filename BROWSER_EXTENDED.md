@@ -1,4 +1,4 @@
-# Extended browser acceptance — 22 required journeys
+# Extended browser acceptance — 24 required journeys
 
 Extract this overlay into `C:\mycode\Orgo\LevelUpDiag-Orgo`, replacing matching
 files. Close and reopen the console so it reloads the campaign description.
@@ -27,6 +27,8 @@ existing administrator test account, and run **browser** as before.
 | E13 | Create maintenance equipment and complete a scheduled intervention |
 | E14 | Create an education group and its support task |
 | E15 | Create a confidential HR case and its associated task |
+| E16 | Verify SSO is unconfigured in the managed standalone runtime, local login remains visible, and a real local login succeeds |
+| E17 | Mock only the public SSO-config response to verify the UI can advertise `kOA Identity` without hiding the local login form |
 
 The seven previously passing journeys remain. All tests use the real API and
 local database. Some scenarios prepare independent fixtures using authenticated
@@ -49,20 +51,21 @@ users). Use a fresh disposable environment when needed; this suite does not
 automatically purge your database.
 
 N15 validates test identities against `browser/coverage.json`, not just a hardcoded
-pass count. All 22 named Chromium tests must pass: missing, skipped, duplicate,
+pass count. All 24 named Chromium tests must pass: missing, skipped, duplicate,
 unexpected or flaky tests cannot produce PASS. `deep` remains unchanged.
 Reports and failure traces remain under `browser/runs/<run_id>/`. These can
 contain credentials and confidential test data; keep them private.
 
 ## Delivery verification and remaining boundaries
 
-Playwright discovers all 22 tests. TypeScript checking passes. Five regression
-tests validate N15 coverage aggregation. Live browser execution against the
-Windows Orgo instance remains to be performed locally.
+The coverage manifest requires 24 named tests. Five regression tests validate N15 coverage aggregation. Live Playwright discovery/typechecking and browser execution against the Windows Orgo instance remain to be performed locally after applying this overlay.
 
 This does not claim complete product acceptance. Cross-organization isolation,
-worker-driven workflow execution, real notifications/providers, OIDC, Koali
+worker-driven workflow execution, real notifications/providers, end-to-end OIDC provider exchange, Koali
 hosting, mobile layout and exhaustive accessibility still need dedicated
 scenarios. Team scope isolation is not cross-organization isolation. Workflow
 simulation is not async workflow execution; the launcher still starts API/web
 only. Existing N14 manual acceptance is not converted to PASS by these tests.
+
+
+E17 deliberately mocks only `GET /api/v3/auth/sso/config`; it does not claim IdP interoperability. E16 uses the real local API and real password login. The managed test runtime removes inherited `OIDC_*` variables so E16 is deterministic and cannot accidentally use a developer's external IdP configuration.
