@@ -1,0 +1,37 @@
+{
+  "schema": "levelupdiag.report.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "run_id": "20260916T193137Z-a04ce12c",
+  "level_id": "N06",
+  "level_name": "Security Hygiene",
+  "purpose": "Perform bounded conservative hygiene checks without claiming a security audit.",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
+  "started_at": "2026-09-16T19:31:38+00:00",
+  "ended_at": "2026-09-16T19:31:38+00:00",
+  "verdict": "WARN",
+  "findings": [
+    {
+      "id": "security.sensitive_filenames.review",
+      "verdict": "WARN",
+      "category": "security_hygiene",
+      "message": "Potentially sensitive filenames were found and should be reviewed.",
+      "evidence": [
+        ".env"
+      ]
+    },
+    {
+      "id": "security.secret_patterns.review",
+      "verdict": "PASS",
+      "category": "security_hygiene",
+      "message": "No configured secret pattern matched in the bounded scan."
+    }
+  ],
+  "artifacts": [],
+  "metrics": {
+    "files_scanned": 183,
+    "potential_secret_hits": 0,
+    "sensitive_filenames": 1,
+    "worker_duration_seconds": 0.405
+  }
+}

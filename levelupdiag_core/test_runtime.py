@@ -10,8 +10,9 @@ import threading
 import time
 from pathlib import Path
 from urllib.request import build_opener, ProxyHandler
+from .config import DEFAULT_TEST_DATABASE_URL
 
-TEST_DATABASE = 'postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test?connection_limit=5'
+TEST_DATABASE = DEFAULT_TEST_DATABASE_URL
 
 
 def api_is_ready(payload):
@@ -82,9 +83,25 @@ class TestRuntime:
                     raise RuntimeError('PostgreSQL did not become ready.')
                 self.cancel.wait(1)
 
+    def reset_database(self):
+        """Reset only the validated disposable orgo_test database."""
+        url = self.ensure_database()
+        self.events.put(('status', 'Resetting disposable orgo_test database…'))
+        # Connect to the maintenance database, terminate stale test connections,
+        # then recreate only orgo_test. Container identity was validated above.
+        self.docker(
+            'exec', 'orgo-test-postgres', 'psql', '-U', 'orgo_test', '-d', 'postgres',
+            '-v', 'ON_ERROR_STOP=1', '-c',
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'orgo_test' AND pid <> pg_backend_pid();",
+        )
+        self.docker('exec', 'orgo-test-postgres', 'dropdb', '-U', 'orgo_test', '--if-exists', 'orgo_test')
+        self.docker('exec', 'orgo-test-postgres', 'createdb', '-U', 'orgo_test', 'orgo_test')
+        self.docker('exec', 'orgo-test-postgres', 'pg_isready', '-U', 'orgo_test', '-d', 'orgo_test')
+        return url
+
     def prepare_database(self):
         if self.busy or self.processes:
-            raise ValueError('Stop the running Orgo test runtime before preparing PostgreSQL.')
+            raise ValueError('Stop the running Orgo test runtime before resetting PostgreSQL.')
         if not shutil.which('docker'):
             raise ValueError('Docker must be installed and available in PATH.')
         self.busy = True
@@ -92,7 +109,7 @@ class TestRuntime:
 
         def work():
             try:
-                url = self.ensure_database()
+                url = self.reset_database()
                 self.events.put(('database-ready', url))
             except Exception as error:
                 self.events.put(('error', str(error)))

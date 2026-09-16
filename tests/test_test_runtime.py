@@ -55,6 +55,22 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(docker.call_args_list[1].args, ('start', 'orgo-test-postgres'))
         self.assertEqual(docker.call_args_list[2].args[:3], ('exec', 'orgo-test-postgres', 'pg_isready'))
 
+
+    def test_reset_database_recreates_only_orgo_test(self):
+        runtime = TestRuntime('.')
+        info = [{
+            'Config': {'Env': ['POSTGRES_DB=orgo_test', 'POSTGRES_USER=orgo_test', 'POSTGRES_PASSWORD=orgo_test']},
+            'HostConfig': {'PortBindings': {'5432/tcp': [{'HostIp': '127.0.0.1', 'HostPort': '5432'}]}},
+        }]
+        outputs = [json.dumps(info), '', '', '', '', '', '']
+        with patch.object(runtime, 'docker', side_effect=outputs) as docker:
+            self.assertEqual(runtime.reset_database(), TEST_DATABASE)
+        calls = [call.args for call in docker.call_args_list]
+        self.assertIn(('exec', 'orgo-test-postgres', 'dropdb', '-U', 'orgo_test', '--if-exists', 'orgo_test'), calls)
+        self.assertIn(('exec', 'orgo-test-postgres', 'createdb', '-U', 'orgo_test', 'orgo_test'), calls)
+        self.assertTrue(any(call[:3] == ('exec', 'orgo-test-postgres', 'psql') and 'pg_terminate_backend' in call[-1] for call in calls))
+        self.assertFalse(any('orgo' == arg for call in calls for arg in call if call[:3] == ('exec', 'orgo-test-postgres', 'dropdb')))
+
     def test_cleanup_does_not_kill_already_exited_process(self):
         runtime = TestRuntime('.')
         process = Mock()

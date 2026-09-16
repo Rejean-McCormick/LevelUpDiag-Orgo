@@ -2,10 +2,29 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from .util import read_json
+from urllib.parse import quote
+from .util import read_dotenv, read_json
+
+DEFAULT_TEST_DATABASE_URL = 'postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test?connection_limit=5'
+
 
 class ConfigError(RuntimeError):
     pass
+
+
+def _target_database_environment(target: Path, relative_env_file: str):
+    env_path = Path(relative_env_file or '.env')
+    if env_path.is_absolute():
+        raise ConfigError('database.target_env_file must be relative to the Orgo repository.')
+    resolved = (target / env_path).resolve(strict=False)
+    if not resolved.is_relative_to(target):
+        raise ConfigError('database.target_env_file must stay inside the Orgo repository.')
+    values = read_dotenv(resolved, {'DATABASE_URL', 'POSTGRES_PASSWORD', 'TEST_DATABASE_URL'})
+    database_url = values.get('DATABASE_URL', '').strip()
+    if not database_url and values.get('POSTGRES_PASSWORD'):
+        password = quote(values['POSTGRES_PASSWORD'], safe='')
+        database_url = f'postgresql://orgo:{password}@127.0.0.1:5432/orgo'
+    return resolved, values, database_url
 
 
 def _merge(base, overlay):
@@ -49,4 +68,16 @@ def load_config(tool_root: Path, target_override=None):
     cfg["_control_root"] = str((tool / control).resolve(strict=False))
     if not Path(cfg["_control_root"]).is_relative_to(tool) or Path(cfg["_control_root"]) == tool:
         raise ConfigError("control_dir must stay in a subdirectory of the diagnostic application")
+
+    database = cfg.setdefault('database', {})
+    if not isinstance(database, dict):
+        raise ConfigError('database configuration must be an object')
+    database.setdefault('target_env_file', '.env')
+    database.setdefault('test_database_url', DEFAULT_TEST_DATABASE_URL)
+    env_path, target_env, database_url = _target_database_environment(target, database['target_env_file'])
+    # Runtime-only values stay out of saved configuration and effective reports.
+    cfg['_target_env_file'] = str(env_path)
+    cfg['_target_env_database_url'] = database_url
+    cfg['_target_env_test_database_url'] = target_env.get('TEST_DATABASE_URL', '').strip()
+    cfg['_target_env_has_postgres_password'] = bool(target_env.get('POSTGRES_PASSWORD'))
     return cfg

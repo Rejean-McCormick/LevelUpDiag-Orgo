@@ -63,14 +63,14 @@ class App(tk.Tk):
         self.save_button.grid(row=3,column=2,padx=(8,0))
         ttk.Button(config,text='What is a test database?',command=self.database_help).grid(row=4,column=2,padx=(8,0))
         runtime_bar = ttk.Frame(outer); runtime_bar.pack(fill='x', pady=(10,0))
-        self.prepare_database_button = ttk.Button(runtime_bar, text='Prepare PostgreSQL test', command=self.prepare_test_database)
+        self.prepare_database_button = ttk.Button(runtime_bar, text='Reset / Prepare PostgreSQL test', command=self.prepare_test_database)
         self.prepare_database_button.pack(side='left')
         self.start_runtime = ttk.Button(runtime_bar, text='Start Orgo test', command=self.start_test_runtime)
         self.start_runtime.pack(side='left', padx=(8,0))
         self.stop_runtime = ttk.Button(runtime_bar, text='Stop Orgo test', command=self.stop_test_runtime)
         self.stop_runtime.pack(side='left', padx=8)
         ttk.Button(runtime_bar, text='Runtime logs', command=self.open_runtime_logs).pack(side='left')
-        self.runtime_status = tk.StringVar(value='Managed test PostgreSQL: existing orgo-test-postgres container. Prepare DB for deep/database; start runtime for browser.')
+        self.runtime_status = tk.StringVar(value='Managed test PostgreSQL: Reset / Prepare recreates only disposable orgo_test; start runtime for browser.')
         ttk.Label(outer, textvariable=self.runtime_status, wraplength=1000).pack(anchor='w', pady=4)
         run = ttk.Frame(outer); run.pack(fill='x',pady=12)
         ttk.Label(run,text='Campaign').pack(side='left',padx=(0,10))
@@ -129,6 +129,9 @@ class App(tk.Tk):
             self.target.set(cfg['_target_root'])
             self.mutation.set(cfg['execution'].get('allow_target_mutation',False))
             self.network.set(cfg['execution'].get('allow_network',False))
+            self.database.set(str(cfg.get('database', {}).get('test_database_url', '') or ''))
+            if cfg.get('_target_env_database_url'):
+                self.runtime_status.set('Orgo .env database settings detected in memory. Native diagnostic campaigns remain pinned to TEST_DATABASE_URL.')
             self.control = Path(cfg['_control_root']); self.refresh()
         except (ValueError, RuntimeError, OSError): pass
         self.describe(); self.after(200,self.poll)
@@ -157,11 +160,12 @@ class App(tk.Tk):
             'It must not contain real or production data.\n\n'
             'Leave this field empty for quick and embedded. Embedded creates its own temporary database.\n\n'
             'For database, deep or acceptance, use a dedicated database such as orgo_test. '
-            'If your validated Docker container orgo-test-postgres exists, click Prepare PostgreSQL test; '
-            'LevelUpDiag starts it, verifies its fixed test-only configuration and fills this field automatically.\n\n'
+            'If your validated Docker container orgo-test-postgres exists, click Reset / Prepare PostgreSQL test; '
+            'LevelUpDiag validates the fixed test-only container, drops/recreates only orgo_test, and fills this field automatically.\n\n'
             'You may instead enter your own test URL, for example: '
             'postgresql://USER:PASSWORD@localhost:5432/orgo_test?connection_limit=5\n\n'
-            'The URL stays in memory only. LevelUpDiag never falls back to DATABASE_URL.')
+            'The LevelUpDiag configuration contains the documented orgo_test URL by default. '
+            'A manual field value overrides it for the current run. LevelUpDiag never falls back to DATABASE_URL.')
 
     def describe(self):
         self.description.set(self.manifest['campaigns'][self.campaign.get()].get('description',''))
@@ -170,7 +174,9 @@ class App(tk.Tk):
     def save(self):
         try:
             cfg = save_settings(self.tool,self.target.get(),self.mutation.get(),self.network.get())
-            self.control = Path(cfg['_control_root']); self.status.set('Settings saved. The test database URL stays in memory only.')
+            if not self.database.get().strip():
+                self.database.set(str(cfg.get('database', {}).get('test_database_url', '') or ''))
+            self.control = Path(cfg['_control_root']); self.status.set('Settings saved. The configured TEST_DATABASE_URL is available automatically.')
             self.refresh(); return True
         except Exception as error:
             messagebox.showerror('Configuration',redact(str(error))); return False
@@ -206,7 +212,7 @@ class App(tk.Tk):
                 kind, value = self.runtime.events.get_nowait()
                 if kind == 'database-ready':
                     self.database.set(value)
-                    self.runtime_status.set('PostgreSQL test is ready; TEST_DATABASE_URL field filled for database/deep campaigns.')
+                    self.runtime_status.set('PostgreSQL test was reset and is ready; TEST_DATABASE_URL filled for database/deep campaigns.')
                 else:
                     if value: self.runtime_status.set(value)
                     if kind == 'error': messagebox.showerror('Orgo test runtime', value)
@@ -265,7 +271,7 @@ class App(tk.Tk):
         if self.session.running: return
         try:
             self.runtime.prepare_database()
-            self.runtime_status.set('Preparing PostgreSQL test…')
+            self.runtime_status.set('Resetting / preparing PostgreSQL test…')
         except Exception as error:
             messagebox.showerror('PostgreSQL test', str(error))
 

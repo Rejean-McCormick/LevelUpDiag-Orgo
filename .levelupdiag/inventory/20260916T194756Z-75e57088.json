@@ -1,0 +1,112 @@
+{
+  "file_count": 183,
+  "bounded_bytes": 1217300,
+  "top_extensions": [
+    [
+      ".ts",
+      67
+    ],
+    [
+      ".md",
+      44
+    ],
+    [
+      ".json",
+      29
+    ],
+    [
+      "<none>",
+      7
+    ],
+    [
+      ".tsx",
+      6
+    ],
+    [
+      ".mjs",
+      6
+    ],
+    [
+      ".js",
+      3
+    ],
+    [
+      ".txt",
+      3
+    ],
+    [
+      ".example",
+      2
+    ],
+    [
+      ".py",
+      2
+    ],
+    [
+      ".yml",
+      2
+    ],
+    [
+      ".ps1",
+      2
+    ],
+    [
+      ".sh",
+      2
+    ],
+    [
+      ".bat",
+      1
+    ],
+    [
+      ".pyw",
+      1
+    ],
+    [
+      ".prisma",
+      1
+    ],
+    [
+      ".toml",
+      1
+    ],
+    [
+      ".sql",
+      1
+    ],
+    [
+      ".tsbuildinfo",
+      1
+    ],
+    [
+      ".css",
+      1
+    ],
+    [
+      ".csv",
+      1
+    ]
+  ],
+  "manifests": [
+    {
+      "path": "package.json",
+      "kind": "node-project"
+    },
+    {
+      "path": "apps/api/package.json",
+      "kind": "node-project"
+    },
+    {
+      "path": "apps/web/package.json",
+      "kind": "node-project"
+    }
+  ],
+  "documentation": [
+    "LICENSE",
+    "README.md",
+    "apps/api/README.md",
+    "apps/web/README.md",
+    "docs/README.md",
+    "tools/scenario-injector/README.md"
+  ]
+}

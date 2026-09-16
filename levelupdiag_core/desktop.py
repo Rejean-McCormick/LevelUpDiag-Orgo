@@ -95,9 +95,12 @@ class Session:
         if campaign not in load_manifest(self.tool)['campaigns']:
             raise ValueError('Unknown campaign.')
         browser_env = browser_environment(browser or {}) if campaign == 'browser' else {}
-        if (campaign in {'database', 'deep', 'acceptance'} and not database
-                and not os.environ.get('TEST_DATABASE_URL')):
-            raise ValueError('Prepare or enter a dedicated TEST_DATABASE_URL before running a native PostgreSQL campaign.')
+        configured_database = str(cfg.get('database', {}).get('test_database_url', '') or '').strip()
+        target_env_database = str(cfg.get('_target_env_test_database_url', '') or '').strip()
+        resolved_database = (database or os.environ.get('TEST_DATABASE_URL') or
+                             configured_database or target_env_database).strip()
+        if campaign in {'database', 'deep', 'acceptance'} and not resolved_database:
+            raise ValueError('Configure, prepare or enter a dedicated TEST_DATABASE_URL before running a native PostgreSQL campaign.')
         with self._lock:
             if self.running: raise ValueError('A campaign is already running.')
             self.running = True
@@ -106,8 +109,9 @@ class Session:
         for key in list(env):
             if key.startswith('ORGO_E2E_'): del env[key]
         env.update(browser_env)
-        if database: env['TEST_DATABASE_URL'] = database
-        secrets = [value for value in (database, browser_env.get('ORGO_E2E_PASSWORD')) if value]
+        if campaign in {'database', 'deep', 'acceptance'} and resolved_database:
+            env['TEST_DATABASE_URL'] = resolved_database
+        secrets = [value for value in (resolved_database, browser_env.get('ORGO_E2E_PASSWORD')) if value]
         def sanitized(value):
             for secret in secrets: value = value.replace(secret, '<REDACTED>')
             return redact(value)

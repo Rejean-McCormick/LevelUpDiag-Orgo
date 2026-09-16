@@ -91,7 +91,7 @@ python levelupdiag.py run deep
 
 Remplacer les identifiants et encoder les caractères réservés du mot de passe.
 `export` est une commande Bash, pas PowerShell.
-Aucun repli sur `DATABASE_URL` n'est effectué. Aucun reset ni correctif npm automatique.
+LevelUpDiag fournit par défaut l’URL locale dédiée `orgo_test` via sa configuration. Il peut aussi lire les paramètres DB du `.env` Orgo en mémoire, mais aucun repli de `TEST_DATABASE_URL` vers `DATABASE_URL` n’est effectué. Aucun reset ni correctif npm automatique.
 Ne pas lancer `npm audit fix --force` aveuglément.
 
 ## Rapports et séparation

@@ -1,0 +1,39 @@
+{
+  "schema": "levelupdiag.report.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "run_id": "20260916T193137Z-a04ce12c",
+  "level_id": "N13",
+  "level_name": "Dependency audit (moderate+)",
+  "purpose": "",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
+  "started_at": "2026-09-16T19:32:36+00:00",
+  "ended_at": "2026-09-16T19:32:38+00:00",
+  "verdict": "PASS",
+  "findings": [
+    {
+      "id": "orgo.audit",
+      "verdict": "PASS",
+      "category": "validation",
+      "message": "Public Orgo validator: audit",
+      "evidence": {
+        "argv": [
+          "node",
+          "C:\\mycode\\Orgo\\LevelUpDiag-Orgo\\adapters\\diag-step.mjs",
+          "audit",
+          "C:\\mycode\\Orgo\\Orgo"
+        ],
+        "cwd": "C:\\mycode\\Orgo\\Orgo",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_seconds": 2.429,
+        "stdout_tail": "{\n  \"auditReportVersion\": 2,\n  \"vulnerabilities\": {},\n  \"metadata\": {\n    \"vulnerabilities\": {\n      \"info\": 0,\n      \"low\": 0,\n      \"moderate\": 0,\n      \"high\": 0,\n      \"critical\": 0,\n      \"total\": 0\n    },\n    \"dependencies\": {\n      \"prod\": 135,\n      \"dev\": 57,\n      \"optional\": 66,\n      \"peer\": 7,\n      \"peerOptional\": 0,\n      \"total\": 230\n    }\n  }\n}\n",
+        "stderr_tail": ""
+      }
+    }
+  ],
+  "artifacts": [],
+  "metrics": {
+    "worker_duration_seconds": 2.619
+  }
+}

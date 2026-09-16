@@ -4,7 +4,7 @@ import tempfile
 import unittest
 import queue
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from levelupdiag_core.desktop import save_settings, report_path, history, Session
 
 class DesktopTests(unittest.TestCase):
@@ -51,11 +51,34 @@ class DesktopTests(unittest.TestCase):
                 'levels':[{'id':'N11','name':'db','order':0,'required':True,'depends_on':[]}],
                 'campaigns':{'database':{'levels':['N11']}}
             }))
+            (tool/'levelupdiag.config.local.json').write_text(json.dumps({'database':{'test_database_url':''}}))
             session=Session(tool)
             with patch.dict(os.environ, {}, clear=True):
                 with self.assertRaisesRegex(ValueError, 'TEST_DATABASE_URL'):
                     session.start('database',str(target))
             self.assertFalse(session.running)
+
+
+    def test_native_campaign_uses_configured_test_database(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tool,target=self.fixture(Path(tmp))
+            configured='postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test'
+            (tool/'levelupdiag.config.local.json').write_text(json.dumps({'database':{'test_database_url':configured}}))
+            (tool/'levelupdiag_manifest.json').write_text(json.dumps({
+                'schema':'levelupdiag.manifest.v2',
+                'levels':[{'id':'N11','name':'db','order':0,'required':True,'depends_on':[]}],
+                'campaigns':{'database':{'levels':['N11']}}
+            }))
+            session=Session(tool)
+            process = Mock()
+            process.stdout = []
+            process.wait.return_value = 0
+            with patch.dict(os.environ, {}, clear=True), patch('levelupdiag_core.desktop.subprocess.Popen', return_value=process) as popen:
+                session.start('database',str(target))
+                for _ in range(100):
+                    if not session.running: break
+                    __import__('time').sleep(0.01)
+            self.assertEqual(popen.call_args.kwargs['env']['TEST_DATABASE_URL'], configured)
 
     def test_unknown_campaign_does_not_launch(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -16,7 +16,7 @@ from .config import load_config
 from .manifest import load_manifest, resolve_selection
 from .util import read_json, utc_now, write_json
 from .verdicts import campaign_verdict, exit_code
-from .vcs import git_info
+from .vcs import git_info, snapshot_tracked_files, restore_tracked_files
 
 FINAL = {"PASS","WARN","FAIL","SKIP","BLOCKED","PARTIAL","ERROR","INFRA_ERROR","CONFIG_ERROR"}
 HARD_DEP_BLOCK = {"FAIL","SKIP","PARTIAL","BLOCKED","ERROR","INFRA_ERROR","CONFIG_ERROR"}
@@ -52,10 +52,21 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
     started = utc_now()
     write_json(run_root / "effective_config.json", {k:v for k,v in cfg.items() if not k.startswith("_")})
 
-    before_vcs = git_info(target) if cfg.get("execution",{}).get("protect_tracked_files", True) else None
-    max_jobs = int(jobs or cfg.get("execution",{}).get("max_parallel", 4) or 1)
+    execution = cfg.get("execution", {})
+    before_vcs = git_info(target) if execution.get("protect_tracked_files", True) else None
+    restore_paths = execution.get("restore_generated_tracked_files", ["apps/web/next-env.d.ts"])
+    generated_snapshots = (snapshot_tracked_files(target, restore_paths)
+                           if before_vcs and before_vcs.get("repository") else {})
+    max_jobs = int(jobs or execution.get("max_parallel", 4) or 1)
     max_jobs = max(1, min(max_jobs, 16))
-    ff = cfg.get("execution",{}).get("fail_fast", False) if fail_fast is None else fail_fast
+    ff = execution.get("fail_fast", False) if fail_fast is None else fail_fast
+    worker_env = os.environ.copy()
+    if not worker_env.get('TEST_DATABASE_URL'):
+        configured_database = str(cfg.get('database', {}).get('test_database_url', '') or '').strip()
+        target_env_database = str(cfg.get('_target_env_test_database_url', '') or '').strip()
+        test_database = configured_database or target_env_database
+        if test_database:
+            worker_env['TEST_DATABASE_URL'] = test_database
 
     by_id = {m["id"]:m for m in levels}
     pending = set(by_id)
@@ -68,10 +79,10 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
         level_dir.mkdir(parents=True, exist_ok=True)
         out = level_dir / "result.json"
         cmd = [sys.executable, str(tool_root / "levelupdiag.py"), "_worker", "--level", meta["id"], "--run-id", run_id, "--output", str(out), "--target", str(target)]
-        timeout = int(meta.get("timeout_seconds") or cfg.get("execution",{}).get("default_timeout_seconds",120))
+        timeout = int(meta.get("timeout_seconds") or execution.get("default_timeout_seconds",120))
         started_mono = time.monotonic()
         try:
-            cp = subprocess.run(cmd, cwd=str(target), stdin=subprocess.DEVNULL,
+            cp = subprocess.run(cmd, cwd=str(target), env=worker_env, stdin=subprocess.DEVNULL,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                                 encoding="utf-8", errors="replace", timeout=timeout, shell=False, check=False)
             if out.exists():
@@ -157,13 +168,30 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
     required_map = {m["id"]:bool(m.get("required",False)) for m in levels}
     verdict = campaign_verdict(ordered, required_map)
 
-    after_vcs = git_info(target) if before_vcs is not None else None
     protection = None
-    if before_vcs and before_vcs.get("repository") and after_vcs and after_vcs.get("repository"):
+    restored_files = []
+    restore_error = None
+    if generated_snapshots:
+        try:
+            restored_files = restore_tracked_files(target, generated_snapshots)
+        except Exception as error:
+            restore_error = str(error)
+            verdict = "ERROR"
+
+    after_vcs = git_info(target) if before_vcs is not None else None
+    if restore_error:
+        protection = {"verdict":"ERROR","message":"Failed to restore expected build-generated tracked files.",
+                      "restored_files":restored_files,"error":restore_error}
+    elif before_vcs and before_vcs.get("repository") and after_vcs and after_vcs.get("repository"):
         if before_vcs.get("tracked_status") != after_vcs.get("tracked_status"):
             protection = {"verdict":"ERROR","message":"Tracked VCS state changed during diagnostics.",
-                          "before":before_vcs.get("tracked_status"),"after":after_vcs.get("tracked_status")}
+                          "before":before_vcs.get("tracked_status"),"after":after_vcs.get("tracked_status"),
+                          "restored_files":restored_files}
             verdict = "ERROR"
+        elif restored_files:
+            protection = {"verdict":"PASS",
+                          "message":"Expected build-generated tracked files were restored to their pre-campaign contents.",
+                          "restored_files":restored_files}
 
     counts = {v:0 for v in FINAL}
     for r in ordered: counts[r.get("verdict","ERROR")] = counts.get(r.get("verdict","ERROR"),0)+1
@@ -179,7 +207,10 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
     write_json(run_root / "summary.json", summary)
     txt = [f"LevelUpDiag {selection} - {verdict}", f"Run: {run_id}", f"Target: {target}", ""]
     txt += [f"{r['level_id']:>3}  {r['verdict']:<12} {r['level_name']}" for r in ordered]
-    if protection: txt += ["", "ERROR: tracked VCS state changed during diagnostics."]
+    if protection and protection.get("verdict") == "ERROR":
+        txt += ["", "ERROR: target protection failed; inspect target_protection in summary.json."]
+    elif protection and protection.get("restored_files"):
+        txt += ["", "Target protection: restored " + ", ".join(protection["restored_files"])]
     (run_root / "summary.txt").write_text("\n".join(txt)+"\n", encoding="utf-8")
     latest = control / "latest"
     latest.mkdir(parents=True, exist_ok=True)

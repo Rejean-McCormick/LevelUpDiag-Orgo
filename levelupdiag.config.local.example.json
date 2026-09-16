@@ -4,7 +4,9 @@
     {
       "id": "example-validator",
       "name": "Replace with a real target validator",
-      "command": ["replace-me"],
+      "command": [
+        "replace-me"
+      ],
       "cwd": ".",
       "required": false,
       "timeout_seconds": 300,
@@ -12,5 +14,9 @@
       "network": false,
       "enabled": false
     }
-  ]
+  ],
+  "database": {
+    "target_env_file": ".env",
+    "test_database_url": "postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test?connection_limit=5"
+  }
 }

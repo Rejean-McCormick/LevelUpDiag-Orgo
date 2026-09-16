@@ -1,0 +1,39 @@
+{
+  "schema": "levelupdiag.report.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "run_id": "20260916T192606Z-8d53136a",
+  "level_id": "N11",
+  "level_name": "Native PostgreSQL integration",
+  "purpose": "",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
+  "started_at": "2026-09-16T19:26:21+00:00",
+  "ended_at": "2026-09-16T19:26:23+00:00",
+  "verdict": "FAIL",
+  "findings": [
+    {
+      "id": "orgo.migrate",
+      "verdict": "FAIL",
+      "category": "validation",
+      "message": "Public Orgo validator: migrate",
+      "evidence": {
+        "argv": [
+          "node",
+          "C:\\mycode\\Orgo\\LevelUpDiag-Orgo\\adapters\\diag-step.mjs",
+          "migrate",
+          "C:\\mycode\\Orgo\\Orgo"
+        ],
+        "cwd": "C:\\mycode\\Orgo\\Orgo",
+        "exit_code": 1,
+        "timed_out": false,
+        "duration_seconds": 2.12,
+        "stdout_tail": "\n> orgo@0.1.0 db:migrate\n> npm run db:migrate -w api\n\n\n> api@0.1.0 db:migrate\n> prisma migrate deploy\n\nPrisma schema loaded from prisma\\schema.prisma\nDatasource \"db\": PostgreSQL database \"orgo_test\", schemas \"insights, public\" at \"127.0.0.1:5432\"\n\n1 migration found in prisma/migrations\n\nApplying migration `00000000000000_initial`\n",
+        "stderr_tail": "Error: P3018\n\nA migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 00000000000000_initial\n\nDatabase error code: 42710\n\nDatabase error:\nERROR: type \"organization_status_enum\" already exists\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42710), message: \"type \\\"organization_status_enum\\\" already exists\", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"typecmds.c\"), line: Some(1175), routine: Some(\"DefineEnum\") }\n\n\nnpm error Lifecycle script `db:migrate` failed with error:\nnpm error code 1\nnpm error path C:\\mycode\\Orgo\\Orgo\\apps\\api\nnpm error workspace api@0.1.0\nnpm error location C:\\mycode\\Orgo\\Orgo\\apps\\api\nnpm error command failed\nnpm error command C:\\Windows\\system32\\cmd.exe /d /s /c prisma migrate deploy\n"
+      }
+    }
+  ],
+  "artifacts": [],
+  "metrics": {
+    "worker_duration_seconds": 2.305
+  }
+}

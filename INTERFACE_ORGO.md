@@ -43,16 +43,14 @@ Example URL (replace the credentials):
 postgresql://USER:PASSWORD@localhost:5432/orgo_test?connection_limit=5
 ```
 
-Enter it in the masked field, or set TEST_DATABASE_URL before starting the console:
+The shipped LevelUpDiag configuration now contains the documented local `orgo_test` URL, so the masked field is prefilled. You can still override it in the field for one run, or set TEST_DATABASE_URL before starting the console:
 
 ```powershell
 $env:TEST_DATABASE_URL = 'postgresql://USER:PASSWORD@localhost:5432/orgo_test?connection_limit=5'
 py -3 LEVELUPDIAG_CONSOLE.pyw
 ```
 
-The URL is held in memory only and is not saved in local configuration.
-When the field is empty, the environment variable is inherited.
-The “What is a test database?” button explains this in the interface.
+The default test URL lives in `levelupdiag.config.json`. A manually typed override stays in memory only. `TEST_DATABASE_URL` from the process environment can also be used. Orgo `.env` is read in memory for normal Orgo database settings, but `DATABASE_URL` is never reused as the native test database. The “What is a test database?” button explains this in the interface.
 
 ## Run and review
 

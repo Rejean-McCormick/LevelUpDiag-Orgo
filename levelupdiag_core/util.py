@@ -24,6 +24,40 @@ def read_json(path: Path):
         return json.load(f)
 
 
+def read_dotenv(path: Path, allowed_keys=None):
+    """Read simple KEY=value entries without mutating process environment.
+
+    This intentionally supports the subset used by Orgo's .env file and never
+    evaluates shell syntax, substitutions, or commands.
+    """
+    if not path.is_file():
+        return {}
+    allowed = set(allowed_keys) if allowed_keys is not None else None
+    values = {}
+    for raw in path.read_text(encoding="utf-8-sig", errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            continue
+        if allowed is not None and key not in allowed:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '\"'):
+            value = value[1:-1]
+        else:
+            # Preserve # inside values; only strip comments introduced by whitespace.
+            value = re.split(r"\s+#", value, maxsplit=1)[0].rstrip()
+        values[key] = value
+    return values
+
+
 def write_json(path: Path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
