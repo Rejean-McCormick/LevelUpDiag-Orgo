@@ -8,12 +8,12 @@ export const taskInput = (title: string) => ({ title, label: '1.11', type: 'gene
 
 export async function login(page: Page, email = process.env.ORGO_E2E_EMAIL!, password = process.env.ORGO_E2E_PASSWORD!) {
   await page.goto('/');
-  await page.getByLabel('Organisation', { exact: true }).fill(process.env.ORGO_E2E_ORGANIZATION!);
-  await page.getByLabel('Adresse courriel').fill(email);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+  await page.getByLabel('Organization', { exact: true }).fill(process.env.ORGO_E2E_ORGANIZATION!);
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
   await paceLogin();
   const pending = page.waitForResponse(r => r.url().endsWith('/auth/login') && r.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   const response = await pending;
   expect(response.ok(), `Login HTTP ${response.status()}`).toBeTruthy();
   const result = await response.json();
@@ -42,14 +42,14 @@ export async function nav(page: Page, label: string) {
 }
 export async function openWork(page: Page, label: string, title: string) {
   await nav(page, label);
-  const search = page.getByRole('textbox', { name: 'Rechercher dans la vue' });
-  const endpoint = label === 'Dossiers' ? 'cases' : label === 'Signaux' ? 'signals' : 'tasks';
+  const search = page.getByRole('textbox', { name: 'Search this view' });
+  const endpoint = label === 'Cases' ? 'cases' : label === 'Signals' ? 'signals' : 'tasks';
   const isListResponse = (response: Awaited<ReturnType<Page['waitForResponse']>>, expectedSearch: string) => {
     const url = new URL(response.url());
     return response.request().method() === 'GET'
       && url.pathname === `/api/v3/${endpoint}`
       && url.searchParams.get('search') === expectedSearch
-      && (label !== 'Mon travail' || url.searchParams.get('mine') === 'true');
+      && (label !== 'My Work' || url.searchParams.get('mine') === 'true');
   };
 
   // Orgo debounces the visible search value into `query` by 250 ms. A profile
@@ -82,7 +82,7 @@ export async function form(page: Page, title: string) {
 }
 export async function submit(page: Page, panel: Locator, path: string, method = 'POST') {
   const pending = page.waitForResponse(r => new URL(r.url()).pathname === `/api/v3/${path}` && r.request().method() === method);
-  await panel.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await panel.getByRole('button', { name: 'Save', exact: true }).click();
   return value(await pending);
 }
 export async function seedWork(page: Page, token: string, kind = 'tasks') {

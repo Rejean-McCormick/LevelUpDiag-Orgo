@@ -118,6 +118,8 @@ depuis le `.env` et le consentement d’écriture sur instance jetable. Elle aut
   temporaire `orgo_restore_validation_*`, avec comparaison du nombre de tables et migrations ;
 - la construction et le démarrage du vrai `docker-compose.yml` sous un nom de projet unique,
   avec volume PostgreSQL propre, endpoints fournisseurs externes neutralisés et cleanup `down -v` ;
+- l’allocation automatique de ports loopback libres pour l’API et le web de cette pile ; les ports
+  locaux 3000/4000 déjà utilisés par une autre instance ne bloquent donc plus N14 ;
 - le healthcheck API/web, le seed du compte de test et les **24 parcours Playwright** sur cette
   pile de production conteneurisée ;
 - la conservation de logs Compose expurgés dans le rapport N14.

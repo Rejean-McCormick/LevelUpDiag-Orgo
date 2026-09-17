@@ -110,8 +110,10 @@ E17 mocks only the public SSO configuration response in the browser to prove tha
 
 La campagne `browser` continue d’utiliser **Start Orgo test** pour la boucle de test rapide.
 La campagne `acceptance`, elle, ne requiert pas ce runtime : N14 construit et démarre une pile
-Docker Compose de production isolée sur les ports locaux 3000/4000, seed le compte E2E, lance
-les mêmes 24 parcours Playwright, puis détruit le projet Compose et son volume. Arrêter tout
-runtime Orgo local avant `acceptance` afin de libérer les ports 3000/4000.
+Docker Compose de production isolée sur deux ports loopback libres alloués automatiquement, seed
+le compte E2E, lance les mêmes 24 parcours Playwright, puis détruit le projet Compose et son volume.
+Une autre instance locale sur 3000/4000 ne provoque donc plus de collision. Le runtime géré par la
+même console doit toutefois être arrêté avant `acceptance` afin d’éviter deux campagnes concurrentes
+sur la base `orgo_test`.
 
 Le mot de passe E2E reste chargé depuis `ORGO_ADMIN_PASSWORD` du `.env` en mémoire uniquement.

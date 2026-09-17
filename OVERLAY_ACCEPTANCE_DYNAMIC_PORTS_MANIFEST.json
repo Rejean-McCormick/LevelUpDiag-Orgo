@@ -1,0 +1,32 @@
+{
+  "name": "LevelUpDiag Acceptance Dynamic Ports",
+  "date": "2026-09-16",
+  "purpose": "Allow N14 isolated Compose acceptance to use OS-allocated loopback host ports instead of requiring 3000/4000.",
+  "files": [
+    {
+      "path": "levels/orgo_acceptance.py",
+      "sha256": "c2124a281728a266a28b15119f5cc09a34b1af4751e1c879ea1bca5a04fac44c"
+    },
+    {
+      "path": "tests/test_acceptance.py",
+      "sha256": "8ffa474ec480ce5a6bfaa8f5afcf1eb68b4febeab3340a4537da7aae57521592"
+    },
+    {
+      "path": "ORGO_VALIDATION.md",
+      "sha256": "3b72b0d95c2dfdf7e443aaed6fdba43a1fd8914ae1baeedcc6efef45a6c030b3"
+    },
+    {
+      "path": "INTERFACE_ORGO.md",
+      "sha256": "2c0c3007cfd581ac99ca5011fc0771e49584af703a8f19f328c3de087e3f311a"
+    },
+    {
+      "path": "PLAYWRIGHT_ORGO.md",
+      "sha256": "63e10ff4a1efe69d8f00ad425f2774200ed991be30d9b0148a1060680684bc86"
+    },
+    {
+      "path": "OVERLAY_ACCEPTANCE_DYNAMIC_PORTS.md",
+      "sha256": "1a2823c98ce0aef57c2ad867c71a8c00de61645bbd0d83da76c7350270af5d8d"
+    }
+  ],
+  "tests": "python -m unittest discover -s tests -v => 72/72 PASS"
+}

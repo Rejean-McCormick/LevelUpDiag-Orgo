@@ -79,17 +79,36 @@ class AcceptanceTests(unittest.TestCase):
             self.assertNotIn('super-secret-value', str(finding['evidence']))
             self.assertIn('<REDACTED>', str(finding['evidence']))
 
-    def test_deployment_refuses_to_replace_existing_local_service(self):
+    def test_deployment_uses_dynamic_host_ports_and_browser_url(self):
         with tempfile.TemporaryDirectory() as tmp:
             target=Path(tmp); (target/'docker-compose.yml').write_text('services: {}\n')
             report=self.report()
             cfg={'_target_root':str(target),'_control_root':str(target/'control'),'_tool_root':str(target)}
-            with patch('levels.orgo_acceptance.shutil.which', return_value='docker'), \
-                 patch('levels.orgo_acceptance.occupied', return_value=True), \
-                 patch('levels.orgo_acceptance.run_command') as command:
-                self.assertFalse(orgo_acceptance.deployment_and_browser_acceptance(cfg, report))
-            command.assert_not_called()
-            self.assertEqual(report.to_dict()['verdict'],'BLOCKED')
+            seen_envs=[]
+            def command(argv, **kwargs):
+                seen_envs.append(dict(kwargs.get('env') or {}))
+                stdout='postgres\napi\nworker\nweb\n' if 'ps' in argv else ''
+                return {'exit_code':0,'timed_out':False,'stdout_tail':stdout,'stderr_tail':''}
+            def browser(_cfg, browser_report):
+                self.assertEqual(os.environ.get('ORGO_E2E_URL'), 'http://127.0.0.1:49112')
+                browser_report.add('orgo.browser.playwright','PASS','browser','ok')
+            env={
+                'ORGO_E2E_PASSWORD':'pw12345',
+                'ORGO_E2E_EMAIL':'e2e@example.test',
+                'ORGO_E2E_ORGANIZATION':'orgo-e2e',
+                'ORGO_E2E_ALLOW_WRITES':'test-instance',
+            }
+            with patch.dict(os.environ, env, clear=True), \
+                 patch('levels.orgo_acceptance.shutil.which', return_value='docker'), \
+                 patch('levels.orgo_acceptance._free_local_port', side_effect=[49111,49112]), \
+                 patch('levels.orgo_acceptance._http_ready', return_value=True), \
+                 patch('levels.orgo_acceptance.run_command', side_effect=command), \
+                 patch('levels.orgo_acceptance.orgo_browser.run', side_effect=browser):
+                self.assertTrue(orgo_acceptance.deployment_and_browser_acceptance(cfg, report))
+            self.assertTrue(any(e.get('ORGO_API_HOST_PORT')=='49111' and e.get('ORGO_WEB_HOST_PORT')=='49112' for e in seen_envs))
+            deployment=next(item for item in report.findings if item['id']=='orgo.acceptance.deployment')
+            self.assertEqual(deployment['evidence']['api_host_port'], 49111)
+            self.assertEqual(deployment['evidence']['web_host_port'], 49112)
 
     def test_compose_environment_blanks_external_endpoints(self):
         report=self.report()
@@ -98,9 +117,19 @@ class AcceptanceTests(unittest.TestCase):
             'ORGO_E2E_ORGANIZATION':'orgo-e2e','KRISTAL_BRIDGE_URL':'https://live.invalid',
             'OIDC_ISSUER':'https://issuer.invalid'
         }, clear=True):
-            env=orgo_acceptance._compose_env(report)
+            env=orgo_acceptance._compose_env(report, 49111, 49112)
         self.assertEqual(env['KRISTAL_BRIDGE_URL'],'')
         self.assertEqual(env['OIDC_ISSUER'],'')
         self.assertEqual(env['ORGO_ADMIN_PASSWORD'],'pw12345')
         self.assertEqual(env['ORGO_ADMIN_EMAIL'],'e2e@example.test')
+        self.assertEqual(env['ORGO_API_HOST_PORT'],'49111')
+        self.assertEqual(env['ORGO_WEB_HOST_PORT'],'49112')
+        self.assertEqual(env['ORGO_PUBLIC_URL'],'http://127.0.0.1:49112')
+
+    def test_free_local_ports_are_distinct_and_bindable(self):
+        first=orgo_acceptance._free_local_port()
+        second=orgo_acceptance._free_local_port({first})
+        self.assertNotEqual(first, second)
+        self.assertGreater(first, 0)
+        self.assertGreater(second, 0)
 

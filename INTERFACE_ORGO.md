@@ -82,5 +82,8 @@ Tk cannot be loaded in the preparation environment.
 ## Acceptance automatisée
 
 Dans la console desktop, sélectionner `acceptance`, vérifier les Browser settings, confirmer
-l’écriture sur instance jetable, activer mutation + réseau, puis lancer la campagne avec le
-runtime Orgo manuel arrêté. N14 gère lui-même le déploiement Docker Compose isolé et le browser.
+l’écriture sur instance jetable, activer mutation + réseau, puis lancer la campagne. N14 gère
+lui-même le déploiement Docker Compose isolé et le browser. La pile d’acceptance reçoit des ports
+loopback libres automatiquement, donc une autre instance locale sur 3000/4000 ne la bloque plus.
+Le runtime **Start Orgo test** suivi par cette même console doit néanmoins être arrêté avant
+`acceptance`, afin de ne pas exécuter deux campagnes sur la même base `orgo_test`.

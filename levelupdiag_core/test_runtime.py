@@ -172,9 +172,10 @@ class TestRuntime:
                 env = os.environ.copy()
                 for key in list(env):
                     if (key.startswith('ORGO_E2E_') or key.startswith('OIDC_')
-                            or key in ('ORGO_ADMIN_PASSWORD', 'ORGO_PUBLIC_URL')):
+                            or key in ('ORGO_ADMIN_PASSWORD', 'ORGO_PUBLIC_URL', 'ORGO_LOCAL_AUTO_LOGIN')):
                         env.pop(key)
-                env.update(DATABASE_URL=TEST_DATABASE, PORT='4000', NODE_ENV='development')
+                env.update(DATABASE_URL=TEST_DATABASE, PORT='4000', NODE_ENV='development',
+                           ORGO_LOCAL_AUTO_LOGIN='false')
                 self.events.put(('status', 'Starting Orgo API on port 4000…'))
                 api = self.launch([shutil.which('node'), str(tsx), 'src/main.ts'], target / 'apps/api', env, 'api')
                 self.wait_ready('http://127.0.0.1:4000/health/ready', api, 90, api=True)

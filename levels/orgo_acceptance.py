@@ -12,13 +12,14 @@ import os
 import re
 import secrets
 import shutil
+import socket
 import time
 from pathlib import Path
 from urllib.parse import urlsplit, unquote
 from urllib.request import ProxyHandler, build_opener
 
 from levelupdiag_core.commands import run_command
-from levelupdiag_core.test_runtime import TestRuntime, api_is_ready, occupied
+from levelupdiag_core.test_runtime import TestRuntime, api_is_ready
 from levelupdiag_core.util import redact
 from levels import orgo_browser
 
@@ -179,7 +180,19 @@ def _http_ready(url: str, seconds: int, api: bool = False) -> bool:
     return False
 
 
-def _compose_env(report) -> dict:
+def _free_local_port(exclude=()) -> int:
+    """Ask the OS for an unused loopback port without disturbing existing services."""
+    excluded = {int(value) for value in exclude}
+    for _ in range(20):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(('127.0.0.1', 0))
+            port = int(sock.getsockname()[1])
+        if port not in excluded:
+            return port
+    raise RuntimeError('Could not allocate a distinct local acceptance port.')
+
+
+def _compose_env(report, api_port: int, web_port: int) -> dict:
     env = os.environ.copy()
     # Prevent the ephemeral deployment from inheriting live external-provider endpoints.
     for key in EXTERNAL_ENV_KEYS:
@@ -187,10 +200,13 @@ def _compose_env(report) -> dict:
     suffix = _safe_suffix(report.run_id)
     env.update({
         'POSTGRES_PASSWORD': f'orgo_acceptance_{suffix}',
-        'ORGO_PUBLIC_URL': 'http://127.0.0.1:3000',
+        'ORGO_API_HOST_PORT': str(api_port),
+        'ORGO_WEB_HOST_PORT': str(web_port),
+        'ORGO_PUBLIC_URL': f'http://127.0.0.1:{web_port}',
         'ORGO_ADMIN_PASSWORD': os.environ.get('ORGO_E2E_PASSWORD', ''),
         'ORGO_ADMIN_EMAIL': os.environ.get('ORGO_E2E_EMAIL', ''),
         'ORGO_ORGANIZATION': os.environ.get('ORGO_E2E_ORGANIZATION', ''),
+        'ORGO_LOCAL_AUTO_LOGIN': 'false',
     })
     return env
 
@@ -205,11 +221,6 @@ def deployment_and_browser_acceptance(cfg, report):
     if not shutil.which('docker'):
         report.add('orgo.acceptance.deployment', 'BLOCKED', 'tooling', 'Docker is required for deployment acceptance.')
         return False
-    if occupied(3000) or occupied(4000):
-        report.add('orgo.acceptance.deployment', 'BLOCKED', 'deployment',
-                   'Ports 3000 or 4000 are occupied. Acceptance will not replace an existing local service.',
-                   recommendation='Stop Orgo test/manual local services, then rerun acceptance.')
-        return False
     required = ('ORGO_E2E_ORGANIZATION', 'ORGO_E2E_EMAIL', 'ORGO_E2E_PASSWORD')
     missing = [key for key in required if not os.environ.get(key)]
     if missing or os.environ.get('ORGO_E2E_ALLOW_WRITES') != 'test-instance':
@@ -219,7 +230,9 @@ def deployment_and_browser_acceptance(cfg, report):
         return False
 
     project = 'ludaccept' + _safe_suffix(report.run_id)
-    env = _compose_env(report)
+    api_port = _free_local_port()
+    web_port = _free_local_port({api_port})
+    env = _compose_env(report, api_port, web_port)
     base = ['docker', 'compose', '-p', project]
     artifact_dir = Path(cfg['_control_root']) / 'runs' / report.run_id / 'acceptance'
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -239,11 +252,11 @@ def deployment_and_browser_acceptance(cfg, report):
             report.add('orgo.acceptance.deployment', 'INFRA_ERROR' if up['timed_out'] else 'FAIL', 'deployment',
                        'The isolated production Compose stack did not start successfully.', evidence=up)
             return False
-        if not _http_ready('http://127.0.0.1:4000/health/ready', 180, api=True):
+        if not _http_ready(f'http://127.0.0.1:{api_port}/health/ready', 180, api=True):
             report.add('orgo.acceptance.deployment', 'FAIL', 'deployment',
                        'Production API did not become ready on the isolated Compose stack.')
             return False
-        if not _http_ready('http://127.0.0.1:3000/', 180):
+        if not _http_ready(f'http://127.0.0.1:{web_port}/', 180):
             report.add('orgo.acceptance.deployment', 'FAIL', 'deployment',
                        'Production web did not become ready on the isolated Compose stack.')
             return False
@@ -265,10 +278,11 @@ def deployment_and_browser_acceptance(cfg, report):
         report.metrics['deployment_services'] = sorted(running)
         report.add('orgo.acceptance.deployment', 'PASS', 'deployment',
                    'Docker Compose built and started an isolated production API/web/worker/PostgreSQL stack; health and seed completed.',
-                   evidence={'services': sorted(running), 'project': project})
+                   evidence={'services': sorted(running), 'project': project,
+                             'api_host_port': api_port, 'web_host_port': web_port})
 
         previous_url = os.environ.get('ORGO_E2E_URL')
-        os.environ['ORGO_E2E_URL'] = 'http://127.0.0.1:3000'
+        os.environ['ORGO_E2E_URL'] = f'http://127.0.0.1:{web_port}'
         try:
             before = len(report.findings)
             orgo_browser.run(cfg, report)
