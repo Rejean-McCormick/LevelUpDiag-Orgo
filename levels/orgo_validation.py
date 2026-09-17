@@ -47,11 +47,6 @@ def run(cfg, report):
         report.add('orgo.dependencies', 'PASS' if installed else 'BLOCKED', 'tooling',
                    'Dependency directory present; command execution will verify usability.' if installed else 'Run npm ci explicitly before validation.')
         return
-    if report.level_id == 'N14':
-        report.add('orgo.acceptance.manual', 'BLOCKED', 'acceptance',
-                   'Browser, native provider, backup/restore and deployment acceptance require local evidence. Automated checks alone do not certify a complete system.',
-                   recommendation='Follow ORGO_VALIDATION.md; retain acceptance evidence separately.')
-        return
     execution = cfg.get('execution', {})
     for step, mutates, network in STEPS[report.level_id]:
         if mutates and not execution.get('allow_target_mutation', False):

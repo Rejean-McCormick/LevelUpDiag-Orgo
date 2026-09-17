@@ -77,3 +77,10 @@ can still write their own outputs and test fixtures in the target environment.
 Configuration, report path confinement and campaign selection have automated tests.
 Python compilation is checked. Native Windows visual acceptance remains local:
 Tk cannot be loaded in the preparation environment.
+
+
+## Acceptance automatisée
+
+Dans la console desktop, sélectionner `acceptance`, vérifier les Browser settings, confirmer
+l’écriture sur instance jetable, activer mutation + réseau, puis lancer la campagne avec le
+runtime Orgo manuel arrêté. N14 gère lui-même le déploiement Docker Compose isolé et le browser.

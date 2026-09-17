@@ -53,6 +53,8 @@ $env:ORGO_E2E_URL = 'http://127.0.0.1:3000'
 $env:ORGO_E2E_ORGANIZATION = 'orgo-e2e'
 $env:ORGO_E2E_EMAIL = 'e2e@example.test'
 $env:ORGO_E2E_PASSWORD = Read-Host 'Enter the same test account password' -MaskInput
+
+In the LevelUpDiag desktop UI, the Browser settings password is loaded automatically from `ORGO_ADMIN_PASSWORD` in the selected Orgo `.env` when present. It remains in memory only and is not written to LevelUpDiag configuration or reports. `ORGO_ADMIN_EMAIL` and `ORGO_ORGANIZATION` are used as matching in-memory account defaults when present.
 $env:ORGO_E2E_ALLOW_WRITES = 'test-instance'
 py -3 .\levelupdiag.py --target 'C:\mycode\Orgo\Orgo' run browser
 ```
@@ -103,3 +105,13 @@ execution of the expanded suite against your Windows API/database remains local.
 The managed runtime intentionally strips inherited `OIDC_*` variables. E16 therefore proves the standalone path against the real API: `/auth/sso/config` reports federation unavailable, the local form remains visible, and the seeded/local account can still authenticate.
 
 E17 mocks only the public SSO configuration response in the browser to prove that advertising `kOA Identity` adds the SSO button without removing the local login controls. It does **not** test authorization-code exchange, discovery, JWKS, or a real Identity Provider; those remain a separate provider acceptance boundary.
+
+## Acceptance N14 automatisée
+
+La campagne `browser` continue d’utiliser **Start Orgo test** pour la boucle de test rapide.
+La campagne `acceptance`, elle, ne requiert pas ce runtime : N14 construit et démarre une pile
+Docker Compose de production isolée sur les ports locaux 3000/4000, seed le compte E2E, lance
+les mêmes 24 parcours Playwright, puis détruit le projet Compose et son volume. Arrêter tout
+runtime Orgo local avant `acceptance` afin de libérer les ports 3000/4000.
+
+Le mot de passe E2E reste chargé depuis `ORGO_ADMIN_PASSWORD` du `.env` en mémoire uniquement.

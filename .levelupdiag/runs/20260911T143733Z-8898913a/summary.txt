@@ -1,9 +1,0 @@
-LevelUpDiag quick - FAIL
-Run: 20260911T143733Z-8898913a
-Target: C:\mycode\Orgo\Orgo
-
-N00  PASS         Diagnostic Integrity
-N01  PASS         Target Context
-N07  PASS         Orgo preflight
-N08  FAIL         Schema, architecture and types
-N09  BLOCKED      Business unit tests

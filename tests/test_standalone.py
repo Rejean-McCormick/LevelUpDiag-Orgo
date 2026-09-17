@@ -36,14 +36,23 @@ class StandaloneTests(unittest.TestCase):
     def test_target_dotenv_database_is_loaded_in_memory_only(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); target = root/'orgo'; target.mkdir()
-            (target/'.env').write_text('POSTGRES_PASSWORD=p%40ss word\n')
+            (target/'.env').write_text(
+                'POSTGRES_PASSWORD=p%40ss word\n'
+                'ORGO_ADMIN_PASSWORD=Browser-Test!2026#safe\n'
+                'ORGO_ADMIN_EMAIL=e2e@example.test\n'
+                'ORGO_ORGANIZATION=orgo-e2e\n'
+            )
             tool = self.setup_paths(root, str(target))
             cfg = load_config(tool)
             self.assertIn('postgresql://orgo:', cfg['_target_env_database_url'])
             self.assertTrue(cfg['_target_env_has_postgres_password'])
+            self.assertEqual(cfg['_target_env_browser_password'], 'Browser-Test!2026#safe')
+            self.assertEqual(cfg['_target_env_browser_email'], 'e2e@example.test')
+            self.assertEqual(cfg['_target_env_browser_organization'], 'orgo-e2e')
             self.assertEqual(cfg['database']['test_database_url'], DEFAULT_TEST_DATABASE_URL)
             saved = json.loads((tool/'levelupdiag.config.json').read_text())
             self.assertNotIn('database', saved)
+            self.assertNotIn('Browser-Test!2026#safe', (tool/'levelupdiag.config.json').read_text())
 
     def test_target_dotenv_path_cannot_escape_repository(self):
         with tempfile.TemporaryDirectory() as d:

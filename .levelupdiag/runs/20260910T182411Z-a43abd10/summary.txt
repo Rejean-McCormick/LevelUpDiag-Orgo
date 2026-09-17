@@ -1,8 +1,0 @@
-LevelUpDiag browser - FAIL
-Run: 20260910T182411Z-a43abd10
-Target: C:\mycode\Orgo\Orgo
-
-N00  PASS         Diagnostic Integrity
-N01  PASS         Target Context
-N07  PASS         Orgo preflight
-N15  FAIL         Playwright browser acceptance

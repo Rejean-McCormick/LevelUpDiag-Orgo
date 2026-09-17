@@ -1,0 +1,101 @@
+{
+  "schema": "levelupdiag.campaign-summary.v2",
+  "standard": "LevelUpDiag",
+  "standard_version": "1.0.0",
+  "run_id": "20260916T223058Z-11458931",
+  "selection": "acceptance",
+  "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
+  "started_at": "2026-09-16T22:30:58+00:00",
+  "ended_at": "2026-09-16T22:32:07+00:00",
+  "verdict": "FAIL",
+  "counts": {
+    "SKIP": 0,
+    "FAIL": 1,
+    "PARTIAL": 0,
+    "ERROR": 0,
+    "PASS": 8,
+    "WARN": 0,
+    "INFRA_ERROR": 0,
+    "BLOCKED": 0,
+    "CONFIG_ERROR": 0
+  },
+  "expected_levels": [
+    "N00",
+    "N01",
+    "N07",
+    "N08",
+    "N09",
+    "N11",
+    "N12",
+    "N13",
+    "N14"
+  ],
+  "required_levels": [
+    "N00",
+    "N01",
+    "N07",
+    "N08",
+    "N09",
+    "N11",
+    "N12",
+    "N13",
+    "N14"
+  ],
+  "levels": [
+    {
+      "id": "N00",
+      "name": "Diagnostic Integrity",
+      "verdict": "PASS",
+      "result": "levels\\N00\\result.json"
+    },
+    {
+      "id": "N01",
+      "name": "Target Context",
+      "verdict": "PASS",
+      "result": "levels\\N01\\result.json"
+    },
+    {
+      "id": "N07",
+      "name": "Orgo preflight",
+      "verdict": "PASS",
+      "result": "levels\\N07\\result.json"
+    },
+    {
+      "id": "N08",
+      "name": "Schema, architecture and types",
+      "verdict": "PASS",
+      "result": "levels\\N08\\result.json"
+    },
+    {
+      "id": "N09",
+      "name": "Business unit tests",
+      "verdict": "PASS",
+      "result": "levels\\N09\\result.json"
+    },
+    {
+      "id": "N11",
+      "name": "Native PostgreSQL integration",
+      "verdict": "PASS",
+      "result": "levels\\N11\\result.json"
+    },
+    {
+      "id": "N12",
+      "name": "API and web production builds",
+      "verdict": "PASS",
+      "result": "levels\\N12\\result.json"
+    },
+    {
+      "id": "N13",
+      "name": "Dependency audit (moderate+)",
+      "verdict": "PASS",
+      "result": "levels\\N13\\result.json"
+    },
+    {
+      "id": "N14",
+      "name": "Automated local production acceptance",
+      "verdict": "FAIL",
+      "result": "levels\\N14\\result.json"
+    }
+  ],
+  "target_protection": null
+}

@@ -43,6 +43,18 @@ class RuntimeTests(unittest.TestCase):
             cli_path(Path(folder), 'api', 'tsx', 'dist/cli.mjs')
 
 
+
+    def test_docker_error_reports_redacted_stderr(self):
+        runtime = TestRuntime('.')
+        result = Mock(returncode=1, stdout='', stderr='connection postgresql://user:password@localhost/db failed')
+        with patch('levelupdiag_core.test_runtime.subprocess.run', return_value=result):
+            with self.assertRaises(RuntimeError) as caught:
+                runtime.docker('exec', 'orgo-test-postgres', 'false')
+        message = str(caught.exception)
+        self.assertIn('exit 1', message)
+        self.assertIn('<REDACTED>@localhost/db', message)
+        self.assertNotIn('user:password@', message)
+
     def test_managed_database_starts_validated_container(self):
         runtime = TestRuntime('.')
         info = [{

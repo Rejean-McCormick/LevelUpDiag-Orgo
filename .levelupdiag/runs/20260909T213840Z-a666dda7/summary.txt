@@ -1,9 +1,0 @@
-LevelUpDiag quick - PASS
-Run: 20260909T213840Z-a666dda7
-Target: C:\mycode\Orgo\Orgo
-
-N00  PASS         Diagnostic Integrity
-N01  PASS         Target Context
-N07  PASS         Orgo preflight
-N08  PASS         Schema, architecture and types
-N09  PASS         Business unit tests

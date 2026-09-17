@@ -1,0 +1,13 @@
+LevelUpDiag acceptance - FAIL
+Run: 20260916T204110Z-687c882e
+Target: C:\mycode\Orgo\Orgo
+
+N00  PASS         Diagnostic Integrity
+N01  PASS         Target Context
+N07  PASS         Orgo preflight
+N08  PASS         Schema, architecture and types
+N09  PASS         Business unit tests
+N11  PASS         Native PostgreSQL integration
+N12  PASS         API and web production builds
+N13  PASS         Dependency audit (moderate+)
+N14  FAIL         Automated local production acceptance

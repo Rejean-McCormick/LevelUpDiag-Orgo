@@ -10,7 +10,7 @@ from tkinter import ttk, filedialog, messagebox
 from .config import load_config
 from .manifest import load_manifest
 from .util import read_json, redact
-from .desktop import Session, save_settings, history, report_path
+from .desktop import Session, save_settings, history, report_path, browser_defaults_from_config
 from .test_runtime import TestRuntime
 
 COLORS = {'PASS':'#178054', 'WARN':'#a16b08', 'FAIL':'#c0353e', 'BLOCKED':'#96630f',
@@ -101,6 +101,7 @@ class App(tk.Tk):
         self.browser_email = tk.StringVar(value='e2e@example.test')
         self.browser_password = tk.StringVar()
         self.browser_writes = tk.BooleanVar(value=False)
+        self.browser_env_target = None
         self.browser_widgets = []
         self.browser_tab.columnconfigure(1, weight=1)
         for row, (label, variable) in enumerate([
@@ -130,11 +131,33 @@ class App(tk.Tk):
             self.mutation.set(cfg['execution'].get('allow_target_mutation',False))
             self.network.set(cfg['execution'].get('allow_network',False))
             self.database.set(str(cfg.get('database', {}).get('test_database_url', '') or ''))
+            self.apply_browser_env_defaults(cfg, force=True)
+            detected = []
             if cfg.get('_target_env_database_url'):
-                self.runtime_status.set('Orgo .env database settings detected in memory. Native diagnostic campaigns remain pinned to TEST_DATABASE_URL.')
+                detected.append('database settings')
+            if cfg.get('_target_env_browser_password'):
+                detected.append('browser credentials')
+            if detected:
+                self.runtime_status.set('Orgo .env ' + ' and '.join(detected) + ' detected in memory. Secrets are not saved by LevelUpDiag.')
             self.control = Path(cfg['_control_root']); self.refresh()
         except (ValueError, RuntimeError, OSError): pass
         self.describe(); self.after(200,self.poll)
+
+
+    def apply_browser_env_defaults(self, cfg, force=False):
+        target = str(cfg.get('_target_root', '') or '')
+        target_changed = target != self.browser_env_target
+        defaults = browser_defaults_from_config(cfg)
+        if force or target_changed:
+            self.browser_org.set(defaults['organization'])
+            self.browser_email.set(defaults['email'])
+            self.browser_password.set(defaults['password'])
+            self.browser_env_target = target
+        elif not self.browser_password.get() and defaults['password']:
+            # Refill an intentionally cleared field from the target .env when
+            # Save/Run reloads the same repository. Manual non-empty overrides
+            # remain valid for the current UI session.
+            self.browser_password.set(defaults['password'])
 
     def textbox(self, parent):
         box = ttk.Frame(parent); box.pack(fill='both',expand=True,pady=(8,0))
@@ -169,11 +192,12 @@ class App(tk.Tk):
 
     def describe(self):
         self.description.set(self.manifest['campaigns'][self.campaign.get()].get('description',''))
-        if self.campaign.get() == 'browser': self.tabs.select(self.browser_tab)
+        if self.campaign.get() in {'browser', 'acceptance'}: self.tabs.select(self.browser_tab)
 
     def save(self):
         try:
             cfg = save_settings(self.tool,self.target.get(),self.mutation.get(),self.network.get())
+            self.apply_browser_env_defaults(cfg)
             if not self.database.get().strip():
                 self.database.set(str(cfg.get('database', {}).get('test_database_url', '') or ''))
             self.control = Path(cfg['_control_root']); self.status.set('Settings saved. The configured TEST_DATABASE_URL is available automatically.')

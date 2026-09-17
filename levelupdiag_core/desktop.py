@@ -58,6 +58,15 @@ def history(control, limit=40):
     return results
 
 
+
+def browser_defaults_from_config(cfg):
+    """Resolve browser account defaults from Orgo's target .env in memory only."""
+    return {
+        'organization': str(cfg.get('_target_env_browser_organization', '') or 'orgo-e2e').strip(),
+        'email': str(cfg.get('_target_env_browser_email', '') or 'e2e@example.test').strip(),
+        'password': str(cfg.get('_target_env_browser_password', '') or ''),
+    }
+
 def browser_environment(settings):
     url = settings.get('url', '').strip()
     try:
@@ -94,7 +103,7 @@ class Session:
         cfg = load_config(self.tool, target)
         if campaign not in load_manifest(self.tool)['campaigns']:
             raise ValueError('Unknown campaign.')
-        browser_env = browser_environment(browser or {}) if campaign == 'browser' else {}
+        browser_env = browser_environment(browser or {}) if campaign in {'browser', 'acceptance'} else {}
         configured_database = str(cfg.get('database', {}).get('test_database_url', '') or '').strip()
         target_env_database = str(cfg.get('_target_env_test_database_url', '') or '').strip()
         resolved_database = (database or os.environ.get('TEST_DATABASE_URL') or

@@ -19,7 +19,12 @@ def _target_database_environment(target: Path, relative_env_file: str):
     resolved = (target / env_path).resolve(strict=False)
     if not resolved.is_relative_to(target):
         raise ConfigError('database.target_env_file must stay inside the Orgo repository.')
-    values = read_dotenv(resolved, {'DATABASE_URL', 'POSTGRES_PASSWORD', 'TEST_DATABASE_URL'})
+    values = read_dotenv(resolved, {
+        'DATABASE_URL', 'POSTGRES_PASSWORD', 'TEST_DATABASE_URL',
+        'ORGO_ADMIN_PASSWORD', 'ORGO_ADMIN_EMAIL', 'ORGO_ORGANIZATION',
+        'OIDC_ISSUER', 'OIDC_CLIENT_ID', 'SMTP_URL', 'SMS_GATEWAY_URL', 'WEBHOOK_GATEWAY_URL',
+        'KRISTAL_BRIDGE_URL', 'KONNAXION_BRIDGE_URL', 'ARCHITECT_BRIDGE_URL', 'KOA_BRIDGE_URL',
+    })
     database_url = values.get('DATABASE_URL', '').strip()
     if not database_url and values.get('POSTGRES_PASSWORD'):
         password = quote(values['POSTGRES_PASSWORD'], safe='')
@@ -80,4 +85,22 @@ def load_config(tool_root: Path, target_override=None):
     cfg['_target_env_database_url'] = database_url
     cfg['_target_env_test_database_url'] = target_env.get('TEST_DATABASE_URL', '').strip()
     cfg['_target_env_has_postgres_password'] = bool(target_env.get('POSTGRES_PASSWORD'))
+    # Browser credentials are runtime-only. They are deliberately kept under
+    # underscore-prefixed keys so they never appear in effective_config.json.
+    cfg['_target_env_browser_password'] = target_env.get('ORGO_ADMIN_PASSWORD', '')
+    cfg['_target_env_browser_email'] = target_env.get('ORGO_ADMIN_EMAIL', '').strip()
+    cfg['_target_env_browser_organization'] = target_env.get('ORGO_ORGANIZATION', '').strip()
+    provider_map = {
+        'oidc': ('OIDC_ISSUER', 'OIDC_CLIENT_ID'),
+        'smtp': ('SMTP_URL',),
+        'sms': ('SMS_GATEWAY_URL',),
+        'webhook': ('WEBHOOK_GATEWAY_URL',),
+        'kristal': ('KRISTAL_BRIDGE_URL',),
+        'konnaxion': ('KONNAXION_BRIDGE_URL',),
+        'architect': ('ARCHITECT_BRIDGE_URL',),
+        'koa': ('KOA_BRIDGE_URL',),
+    }
+    cfg['_target_env_configured_providers'] = [
+        name for name, keys in provider_map.items() if all(target_env.get(key, '').strip() for key in keys)
+    ]
     return cfg

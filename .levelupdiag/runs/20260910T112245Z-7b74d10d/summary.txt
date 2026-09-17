@@ -1,8 +1,0 @@
-LevelUpDiag browser - BLOCKED
-Run: 20260910T112245Z-7b74d10d
-Target: C:\mycode\Orgo\Orgo
-
-N00  PASS         Diagnostic Integrity
-N01  PASS         Target Context
-N07  PASS         Orgo preflight
-N15  BLOCKED      Playwright browser acceptance

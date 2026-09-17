@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from urllib.request import build_opener, ProxyHandler
 from .config import DEFAULT_TEST_DATABASE_URL
+from .util import redact, tail_text
 
 TEST_DATABASE = DEFAULT_TEST_DATABASE_URL
 
@@ -57,7 +58,12 @@ class TestRuntime:
         result = subprocess.run(['docker', *args], capture_output=True, text=True,
                                 timeout=45, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         if result.returncode:
-            raise RuntimeError('Docker command failed. Open Docker Desktop and verify the existing orgo-test-postgres container.')
+            command = redact('docker ' + ' '.join(str(arg) for arg in args))
+            detail = (result.stderr or result.stdout or '').strip()
+            detail = redact(tail_text(detail, 4096)) if detail else '<no output>'
+            raise RuntimeError(
+                f'Docker command failed (exit {result.returncode}): {command}\n{detail}'
+            )
         return result.stdout
 
     def ensure_database(self):

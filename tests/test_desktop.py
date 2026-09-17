@@ -80,6 +80,32 @@ class DesktopTests(unittest.TestCase):
                     __import__('time').sleep(0.01)
             self.assertEqual(popen.call_args.kwargs['env']['TEST_DATABASE_URL'], configured)
 
+
+    def test_acceptance_injects_browser_credentials_without_saving_them(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tool,target=self.fixture(Path(tmp))
+            configured='postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test'
+            (tool/'levelupdiag.config.local.json').write_text(json.dumps({'database':{'test_database_url':configured}}))
+            (tool/'levelupdiag_manifest.json').write_text(json.dumps({
+                'schema':'levelupdiag.manifest.v2',
+                'levels':[{'id':'N14','name':'acceptance','order':0,'required':True,'depends_on':[]}],
+                'campaigns':{'acceptance':{'levels':['N14']}}
+            }))
+            session=Session(tool)
+            process=Mock(); process.stdout=[]; process.wait.return_value=0
+            browser={'url':'http://127.0.0.1:3000','organization':'orgo-e2e','email':'e2e@example.test','password':'secret-pass','allow_writes':True}
+            with patch.dict(os.environ, {}, clear=True), patch('levelupdiag_core.desktop.subprocess.Popen', return_value=process) as popen:
+                session.start('acceptance',str(target),browser=browser)
+                for _ in range(100):
+                    if not session.running: break
+                    __import__('time').sleep(0.01)
+            env=popen.call_args.kwargs['env']
+            self.assertEqual(env['ORGO_E2E_PASSWORD'],'secret-pass')
+            self.assertEqual(env['ORGO_E2E_ALLOW_WRITES'],'test-instance')
+            self.assertEqual(env['TEST_DATABASE_URL'],configured)
+            local=json.loads((tool/'levelupdiag.config.local.json').read_text())
+            self.assertNotIn('secret-pass', json.dumps(local))
+
     def test_unknown_campaign_does_not_launch(self):
         with tempfile.TemporaryDirectory() as tmp:
             tool,target=self.fixture(Path(tmp))

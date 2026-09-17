@@ -3,7 +3,7 @@
   "standard": "LevelUpDiag",
   "standard_version": "1.0.0",
   "suite_name": "LevelUpDiag-Orgo",
-  "suite_version": "1.3.0",
+  "suite_version": "1.4.0",
   "repository_mode": "standalone-external-target",
   "control_dir_default": ".levelupdiag",
   "levels": [
@@ -106,15 +106,19 @@
     },
     {
       "id": "N14",
-      "name": "Local acceptance boundary",
-      "module": "levels.orgo_validation",
+      "name": "Automated local production acceptance",
+      "module": "levels.orgo_acceptance",
       "order": 140,
       "required": true,
       "depends_on": [
-        "N07"
+        "N09",
+        "N11",
+        "N12",
+        "N13"
       ],
-      "timeout_seconds": 60,
-      "parallel_safe": false
+      "timeout_seconds": 5400,
+      "parallel_safe": false,
+      "purpose": "Exercise backup/restore, isolated production deployment and full browser acceptance without touching production data."
     },
     {
       "id": "N00",
@@ -257,7 +261,7 @@
       ]
     },
     "acceptance": {
-      "description": "Automated deep validation plus explicit manual acceptance boundary (BLOCKED until local review).",
+      "description": "Deep validation plus automated backup/restore, isolated production Docker Compose deployment and 24-journey Playwright acceptance; live external providers remain explicitly reported.",
       "levels": [
         "N09",
         "N11",

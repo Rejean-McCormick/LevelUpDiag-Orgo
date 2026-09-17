@@ -59,7 +59,7 @@ Ne pas écraser une configuration locale existante sans la comparer.
 | build | Types et compilations API/web |
 | security | Hygiène et npm audit moderate+, sans correction automatique |
 | deep | Standard + PostgreSQL natif + builds + audit |
-| acceptance | Deep + frontière de recette locale explicitement BLOCKED |
+| acceptance | Deep + backup/restore réel sur `orgo_test` + déploiement Docker Compose isolé + seed + 24 parcours Playwright |
 
 Les mutations sont désactivées par défaut. Les autoriser permet aux commandes
 d'Orgo de générer Prisma, des fichiers de compilation et des fixtures de test ;
@@ -91,7 +91,7 @@ python levelupdiag.py run deep
 
 Remplacer les identifiants et encoder les caractères réservés du mot de passe.
 `export` est une commande Bash, pas PowerShell.
-LevelUpDiag fournit par défaut l’URL locale dédiée `orgo_test` via sa configuration. Il peut aussi lire les paramètres DB du `.env` Orgo en mémoire, mais aucun repli de `TEST_DATABASE_URL` vers `DATABASE_URL` n’est effectué. Aucun reset ni correctif npm automatique.
+LevelUpDiag fournit par défaut l’URL locale dédiée `orgo_test` via sa configuration. Il peut aussi lire les paramètres DB du `.env` Orgo en mémoire, mais aucun repli de `TEST_DATABASE_URL` vers `DATABASE_URL` n’est effectué. Le bouton Reset / Prepare recrée explicitement la base jetable gérée; aucun correctif npm automatique n’est appliqué.
 Ne pas lancer `npm audit fix --force` aveuglément.
 
 ## Rapports et séparation
@@ -108,12 +108,26 @@ Un échec, une absence de tests ou un test natif ignoré ne devient pas PASS.
 Codes campagne : PASS/WARN 0, FAIL 10, preuve manquante 20, erreur de configuration 30.
 Un WARN n'est pas une certification.
 
-## Limites
+## Acceptance automatisée N14
 
-Windows natif, PostgreSQL natif, navigateur, fournisseurs SMTP/SMS/OIDC et
-Kristal/Konnaxion, sauvegarde/restauration, charge et déploiement requièrent la recette locale.
-Les contrats Koali/Capsule doivent être validés avec leurs implémentations réelles.
-N14 reste BLOCKED : une déclaration manuelle n'est pas une preuve automatique.
+La campagne `acceptance` attend toujours la base jetable gérée `orgo_test`, les permissions
+**Allow generation, tests and builds** et **Allow network**, ainsi que le compte browser chargé
+depuis le `.env` et le consentement d’écriture sur instance jetable. Elle automatise ensuite :
+
+- l’exécution des scripts livrés `scripts/operations/backup.sh` et `restore.sh` vers une base
+  temporaire `orgo_restore_validation_*`, avec comparaison du nombre de tables et migrations ;
+- la construction et le démarrage du vrai `docker-compose.yml` sous un nom de projet unique,
+  avec volume PostgreSQL propre, endpoints fournisseurs externes neutralisés et cleanup `down -v` ;
+- le healthcheck API/web, le seed du compte de test et les **24 parcours Playwright** sur cette
+  pile de production conteneurisée ;
+- la conservation de logs Compose expurgés dans le rapport N14.
+
+Les fournisseurs externes (SMTP/SMS/OIDC/Kristal/Konnaxion/Architect/kOA/webhook) ne reçoivent
+jamais automatiquement une opération réelle : leurs URLs configurées sont détectées et N14
+produit `WARN` tant qu’une recette fournisseur spécifique n’est pas conservée séparément. Si
+aucun endpoint externe n’est configuré dans `.env`, cette frontière est considérée hors scope
+de l’instance locale et n’empêche pas N14 de passer. Les tests de charge restent séparés.
+
 Les documents neutres hérités « copy-in » ne sont pas prescriptifs pour cette adaptation.
 
 

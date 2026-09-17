@@ -16,6 +16,7 @@ from levelupdiag_core.manifest import load_manifest, resolve_selection
 from levelupdiag_core.runner import HARD_DEP_BLOCK
 from levelupdiag_core.runner import run_campaign
 from levels.orgo_validation import run, test_database_valid
+from levels.orgo_acceptance import managed_test_database, provider_boundary
 
 class OrgoTests(unittest.TestCase):
     def report(self, level):
@@ -80,10 +81,24 @@ class OrgoTests(unittest.TestCase):
             run({'_tool_root':str(Path(__file__).resolve().parents[1]),'_target_root':'.','execution':{'allow_target_mutation':True,'allow_network':True}}, report)
         self.assertEqual(report.to_dict()['verdict'], 'PARTIAL')
 
-    def test_manual_acceptance_cannot_be_green(self):
+    def test_managed_acceptance_database_guard(self):
+        self.assertTrue(managed_test_database('postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test'))
+        for url in ('postgresql://orgo:orgo@127.0.0.1:5432/orgo',
+                    'postgresql://orgo_test:orgo_test@example.test:5432/orgo_test',
+                    'postgresql://orgo_test:orgo_test@127.0.0.1:5432/other_test'):
+            self.assertFalse(managed_test_database(url))
+
+    def test_provider_boundary_is_pass_when_no_external_provider_is_configured(self):
         report = self.report('N14')
-        run({'_tool_root':str(Path(__file__).resolve().parents[1]),'_target_root':'.'}, report)
-        self.assertEqual(report.to_dict()['verdict'], 'BLOCKED')
+        provider_boundary({'_target_env_configured_providers': []}, report)
+        self.assertEqual(report.to_dict()['verdict'], 'PASS')
+
+    def test_provider_boundary_warns_without_sending_live_operations(self):
+        report = self.report('N14')
+        provider_boundary({'_target_env_configured_providers': ['oidc', 'kristal']}, report)
+        data = report.to_dict()
+        self.assertEqual(data['verdict'], 'WARN')
+        self.assertEqual(data['findings'][0]['evidence']['configured_provider_classes'], ['oidc', 'kristal'])
 
     def test_database_secrets_redacted(self):
         with patch.dict(os.environ, {'API_TOKEN':'veryprivate'}):
@@ -96,6 +111,10 @@ class OrgoTests(unittest.TestCase):
         ids = [m['id'] for m in resolve_selection(manifest, 'deep')]
         for required in ('N07', 'N08', 'N09', 'N11', 'N12', 'N13'):
             self.assertIn(required, ids)
+        acceptance = [m['id'] for m in resolve_selection(manifest, 'acceptance')]
+        for required in ('N09', 'N11', 'N12', 'N13', 'N14'):
+            self.assertIn(required, acceptance)
+        self.assertGreater(acceptance.index('N14'), acceptance.index('N13'))
         self.assertLess(ids.index('N08'), ids.index('N11'))
         self.assertTrue({'FAIL','SKIP','PARTIAL'} <= HARD_DEP_BLOCK)
 
