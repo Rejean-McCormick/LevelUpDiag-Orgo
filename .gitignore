@@ -1,6 +1,26 @@
+# Python caches / test state
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.pytest-tmp/
+.levelupdiag/
+.venv/
+venv/
+
+# Local configuration
 levelupdiag.config.local.json
+
+# Browser / Playwright generated output
+browser/node_modules/
+browser/test-results/
+browser/playwright-report/
+browser/results.json
+browser/runs/
+browser/diag-*/
+
+# Logs / OS / local helpers
 *.log
 .DS_Store
+Thumbs.db
 GitSink.bat
+/SmartSnap.pyw
