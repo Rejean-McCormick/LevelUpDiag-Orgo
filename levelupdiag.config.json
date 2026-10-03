@@ -61,5 +61,11 @@
   "database": {
     "target_env_file": ".env",
     "test_database_url": "postgresql://orgo_test:orgo_test@127.0.0.1:5432/orgo_test?connection_limit=5"
+  },
+  "ecosystem": {
+    "kor_repo_root": "C:/mycode/Kor/kor",
+    "orgo_api_url": "http://127.0.0.1:4000",
+    "orgo_web_url": "http://127.0.0.1:3000",
+    "android_mode": "emulator"
   }
 }

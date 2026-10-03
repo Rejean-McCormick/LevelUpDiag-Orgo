@@ -3,7 +3,7 @@
   "standard": "LevelUpDiag",
   "standard_version": "1.0.0",
   "suite_name": "LevelUpDiag-Orgo",
-  "suite_version": "1.4.0",
+  "suite_version": "1.5.0",
   "repository_mode": "standalone-external-target",
   "control_dir_default": ".levelupdiag",
   "levels": [
@@ -216,6 +216,19 @@
       "timeout_seconds": 180,
       "parallel_safe": true,
       "purpose": "Perform bounded conservative hygiene checks without claiming a security audit."
+    },
+    {
+      "id": "N16",
+      "name": "Ecosystem E2E — Konvergence / Orgo / Kor / Android",
+      "module": "levels.orgo_ecosystem",
+      "order": 160,
+      "required": true,
+      "depends_on": [
+        "N07"
+      ],
+      "timeout_seconds": 7200,
+      "parallel_safe": false,
+      "purpose": "Inject the canonical Konvergence seed into local Orgo, prove it in Orgo UI with Playwright, project it through Kor, and prove synchronization/rendering in Kor Android."
     }
   ],
   "campaigns": {
@@ -308,6 +321,12 @@
         "N12",
         "N13",
         "N06"
+      ]
+    },
+    "ecosystem": {
+      "description": "One-click focused E2E: Konvergence seed → Orgo API/UI → Kor mobile surfaces → Android emulator (or physical phone). Produces screenshots and a single PASS/FAIL verdict.",
+      "levels": [
+        "N16"
       ]
     }
   }

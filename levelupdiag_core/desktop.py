@@ -99,11 +99,11 @@ class Session:
         self._lock = threading.Lock()
         self.running = False
 
-    def start(self, campaign, target, database='', browser=None):
+    def start(self, campaign, target, database='', browser=None, ecosystem=None):
         cfg = load_config(self.tool, target)
         if campaign not in load_manifest(self.tool)['campaigns']:
             raise ValueError('Unknown campaign.')
-        browser_env = browser_environment(browser or {}) if campaign in {'browser', 'acceptance'} else {}
+        browser_env = browser_environment(browser or {}) if campaign in {'browser', 'acceptance', 'ecosystem'} else {}
         configured_database = str(cfg.get('database', {}).get('test_database_url', '') or '').strip()
         target_env_database = str(cfg.get('_target_env_test_database_url', '') or '').strip()
         resolved_database = (database or os.environ.get('TEST_DATABASE_URL') or
@@ -120,6 +120,12 @@ class Session:
         env.update(browser_env)
         if campaign in {'database', 'deep', 'acceptance'} and resolved_database:
             env['TEST_DATABASE_URL'] = resolved_database
+        if campaign == 'ecosystem':
+            eco = ecosystem or {}
+            env['ORGO_ECOSYSTEM_APPROVED'] = '1'
+            env['ORGO_ECOSYSTEM_ANDROID_MODE'] = 'physical' if eco.get('physical') else 'emulator'
+            kor_root = str(eco.get('kor_root') or cfg.get('ecosystem', {}).get('kor_repo_root', r'C:\\mycode\\Kor\\kor'))
+            env['ORGO_ECOSYSTEM_KOR_ROOT'] = kor_root
         secrets = [value for value in (resolved_database, browser_env.get('ORGO_E2E_PASSWORD')) if value]
         def sanitized(value):
             for secret in secrets: value = value.replace(secret, '<REDACTED>')
