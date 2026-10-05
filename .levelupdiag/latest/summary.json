@@ -2,44 +2,36 @@
   "schema": "levelupdiag.campaign-summary.v2",
   "standard": "LevelUpDiag",
   "standard_version": "1.0.0",
-  "run_id": "20260917T124220Z-b3066c93",
-  "selection": "acceptance",
+  "run_id": "20261005T025511Z-b1545cc2",
+  "selection": "quick",
   "target_repo_root": "C:\\mycode\\Orgo\\Orgo",
-  "started_at": "2026-09-17T12:42:20+00:00",
-  "ended_at": "2026-09-17T12:48:11+00:00",
+  "started_at": "2026-10-05T02:55:11+00:00",
+  "ended_at": "2026-10-05T02:55:29+00:00",
   "verdict": "PASS",
   "counts": {
-    "PARTIAL": 0,
-    "PASS": 9,
+    "PASS": 5,
+    "BLOCKED": 0,
+    "ERROR": 0,
+    "FAIL": 0,
     "CONFIG_ERROR": 0,
     "WARN": 0,
+    "PARTIAL": 0,
     "SKIP": 0,
-    "INFRA_ERROR": 0,
-    "FAIL": 0,
-    "ERROR": 0,
-    "BLOCKED": 0
+    "INFRA_ERROR": 0
   },
   "expected_levels": [
     "N00",
     "N01",
     "N07",
     "N08",
-    "N09",
-    "N11",
-    "N12",
-    "N13",
-    "N14"
+    "N09"
   ],
   "required_levels": [
     "N00",
     "N01",
     "N07",
     "N08",
-    "N09",
-    "N11",
-    "N12",
-    "N13",
-    "N14"
+    "N09"
   ],
   "levels": [
     {
@@ -71,30 +63,6 @@
       "name": "Business unit tests",
       "verdict": "PASS",
       "result": "levels\\N09\\result.json"
-    },
-    {
-      "id": "N11",
-      "name": "Native PostgreSQL integration",
-      "verdict": "PASS",
-      "result": "levels\\N11\\result.json"
-    },
-    {
-      "id": "N12",
-      "name": "API and web production builds",
-      "verdict": "PASS",
-      "result": "levels\\N12\\result.json"
-    },
-    {
-      "id": "N13",
-      "name": "Dependency audit (moderate+)",
-      "verdict": "PASS",
-      "result": "levels\\N13\\result.json"
-    },
-    {
-      "id": "N14",
-      "name": "Automated local production acceptance",
-      "verdict": "PASS",
-      "result": "levels\\N14\\result.json"
     }
   ],
   "target_protection": null
