@@ -34,6 +34,31 @@
     },
     "levels": {
       "type": "array"
+    },
+    "evidence_integrity": {
+      "description": "Integrity linkage for newly produced v2 run summaries; required by strict verify-run, not a signature.",
+      "type": "object",
+      "required": [
+        "format",
+        "algorithm",
+        "files"
+      ],
+      "properties": {
+        "format": {
+          "const": "levelupdiag.evidence-integrity.v1"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true

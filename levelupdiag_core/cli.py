@@ -10,6 +10,7 @@ from .manifest import ManifestError, load_manifest, level_map
 from .runner import run_campaign
 from .util import read_json
 from .worker import run_worker
+from .evidence_integrity import EvidenceError, digest_file, verify_campaign_evidence, MAX_SUMMARY_BYTES
 
 
 def parser():
@@ -23,8 +24,9 @@ def parser():
     r.add_argument("selection", nargs="?", default="standard")
     r.add_argument("--jobs", type=int, help="Maximum parallel level workers")
     r.add_argument("--fail-fast", action="store_true")
-    v = sub.add_parser("verify-run", help="Verify a campaign summary structure")
-    v.add_argument("summary")
+    v = sub.add_parser("verify-run", help="Verify a run, all level reports, SHA-256 links and verdict")
+    v.add_argument("summary", help="Original .levelupdiag/runs/<run-id>/summary.json (not latest)")
+    v.add_argument("--expected-summary-sha256", help="External SHA-256 pin from a trusted ledger")
     w = sub.add_parser("_worker", help=argparse.SUPPRESS)
     w.add_argument("--level", required=True); w.add_argument("--run-id", required=True)
     w.add_argument("--output", required=True); w.add_argument("--target", required=True, dest="worker_target")
@@ -66,21 +68,15 @@ def main(argv=None):
             for row in summary["levels"]:
                 print(f"  {row['id']}  {row['verdict']:<12} {row['name']}")
             print(f"Report: {run_root / 'summary.json'}")
+            print(f"Summary SHA-256 (pin externally): {digest_file(run_root / 'summary.json', MAX_SUMMARY_BYTES)}")
             return code
         if args.cmd == "verify-run":
-            p = Path(args.summary)
-            d = read_json(p)
-            required = {"schema","run_id","selection","verdict","expected_levels","levels"}
-            missing = sorted(required - set(d))
-            if missing:
-                print("INVALID: missing " + ", ".join(missing)); return 30
-            if d.get("schema") != "levelupdiag.campaign-summary.v2":
-                print("INVALID: unsupported schema"); return 30
-            ids = [x.get("id") for x in d.get("levels",[])]
-            if ids != d.get("expected_levels"):
-                print("INVALID: levels do not match expected_levels"); return 30
-            print("VALID"); return 0
+            summary, sha = verify_campaign_evidence(Path(args.summary), args.expected_summary_sha256)
+            print(f"VALID: {summary['verdict']} / {len(summary['levels'])} level reports / SHA-256 {sha}")
+            if not args.expected_summary_sha256:
+                print("NOTE: Integrity verified, but not independently authenticated. Pin the summary SHA-256 externally.")
+            return 0
         return 64
-    except (ConfigError, ManifestError, OSError, ValueError) as e:
+    except (ConfigError, ManifestError, EvidenceError, OSError, ValueError) as e:
         print(f"LevelUpDiag error: {e}", file=sys.stderr)
         return 30

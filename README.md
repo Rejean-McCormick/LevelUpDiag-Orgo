@@ -26,3 +26,13 @@ Source generation, builds and additional test commands are allowed only by expli
 - [Ecosystem validation](ORGO_ECOSYSTEM.md) — cross-component setup
 
 Historical snapshot instructions describing a *copy-in* installation model are superseded by the independent, standalone adaptation documented here.
+
+## Tandem 1.0 — Preuves OrgoDiag vérifiables
+
+Une nouvelle campagne enregistre les SHA-256 des rapports de niveau et affiche
+l'empreinte du résumé. Vérifier le run original avec
+`python levelupdiag.py verify-run .levelupdiag/runs/<run-id>/summary.json`.
+Pour lier les preuves au registre kOA, épingler séparément l'empreinte du résumé,
+puis fournir `--expected-summary-sha256 <digest>` lors de la vérification.
+Ce n'est **pas une signature**; un verdict `WARN` ou `BLOCKED` reste tel quel.
+Voir `docs/TANDEM_TOUR_LEVELUPDIAG_EVIDENCE_2026-10-19.md`.

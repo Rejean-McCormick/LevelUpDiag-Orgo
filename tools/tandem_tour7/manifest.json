@@ -1,0 +1,38 @@
+{
+  "format": "koa.tandem.levelupdiag-tour7.v1",
+  "snapshot_sha256": "090de427b11345aa07f86a2fe91cfd86e36ec491737fa0066b12099f951a3e85",
+  "files": {
+    "README.md": {
+      "old_sha256": "dafba17a88200db4e3e160df4da9de1a3cd7e4df7d658c594dac731993b599ee",
+      "new_sha256": "15646199387e03d3e08580cef16534dce1475bc87d6a8c67b9925c5a3d4b25c4"
+    },
+    "docs/RESULT_MODEL.md": {
+      "old_sha256": "88889c3ee567b5f8c36399e0c25204d796703c8158f8bce8858ba6facb2c9ded",
+      "new_sha256": "952a83377096fb35605cc6e9fa97b0a45d1b7903219a66b644b40098a8257e09"
+    },
+    "docs/TANDEM_TOUR_LEVELUPDIAG_EVIDENCE_2026-10-19.md": {
+      "old_sha256": null,
+      "new_sha256": "d3147b654869a657a8cdb5f7a1e803c9f3a20545c14d9dda90f654d10a58c567"
+    },
+    "schemas/campaign-summary.schema.json": {
+      "old_sha256": "884280bd039b141e0bdbd8a3c41e192c9d545db9e2de332bbcd771461834547f",
+      "new_sha256": "15fcf651edb2b25dae64ab1914bf3ce2e87aac7a7500e6e31cf5e6e931f4d75c"
+    },
+    "levelupdiag_core/cli.py": {
+      "old_sha256": "29570e4b80e649c55342fa8fad1158238c77d73ccac05b2656feb7df55ba54eb",
+      "new_sha256": "b4b27a7b86bf79a462d0ebdf755bbf62eaa4694b3d07333596bdef7d84603df2"
+    },
+    "levelupdiag_core/runner.py": {
+      "old_sha256": "eae9d596f7556d0822597119eb575bed7ca4bbb9b091cd6f9be9fdf64ee4258d",
+      "new_sha256": "ee8b81b79285091b0bfa1fdb36b4fcd68d19b2e7a2f6083debafd6b0c492ecf4"
+    },
+    "levelupdiag_core/evidence_integrity.py": {
+      "old_sha256": null,
+      "new_sha256": "411ef8cea62291917b8ea8c1bcf1b28d1c6ae7a16b182aefba2a97890431cfe9"
+    },
+    "tests/test_tandem_evidence_integrity.py": {
+      "old_sha256": null,
+      "new_sha256": "b41f393e4fb870101a9bd94d38850bd3679a721e17ab6b3a6fed7cef3c4cc281"
+    }
+  }
+}

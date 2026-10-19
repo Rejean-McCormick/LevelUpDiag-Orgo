@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "levelupdiag.campaign-summary.v2",
+  "title": "LevelUpDiag Campaign Summary v2",
+  "type": "object",
+  "required": [
+    "schema",
+    "run_id",
+    "selection",
+    "target_repo_root",
+    "verdict",
+    "expected_levels",
+    "required_levels",
+    "levels"
+  ],
+  "properties": {
+    "schema": {
+      "const": "levelupdiag.campaign-summary.v2"
+    },
+    "verdict": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED",
+        "ERROR"
+      ]
+    },
+    "expected_levels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "levels": {
+      "type": "array"
+    },
+    "evidence_integrity": {
+      "description": "Integrity linkage for newly produced v2 run summaries; required by strict verify-run, not a signature.",
+      "type": "object",
+      "required": [
+        "format",
+        "algorithm",
+        "files"
+      ],
+      "properties": {
+        "format": {
+          "const": "levelupdiag.evidence-integrity.v1"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

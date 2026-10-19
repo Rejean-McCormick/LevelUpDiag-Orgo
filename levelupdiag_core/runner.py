@@ -16,6 +16,7 @@ from .config import load_config
 from .manifest import load_manifest, resolve_selection
 from .util import read_json, utc_now, write_json
 from .verdicts import campaign_verdict, exit_code
+from .evidence_integrity import seal_campaign_evidence, canonical_level_result_path
 from .vcs import git_info, snapshot_tracked_files, restore_tracked_files
 
 FINAL = {"PASS","WARN","FAIL","SKIP","BLOCKED","PARTIAL","ERROR","INFRA_ERROR","CONFIG_ERROR"}
@@ -201,9 +202,10 @@ def run_campaign(tool_root: Path, selection: str, target_override=None, jobs=Non
         "started_at":started,"ended_at":utc_now(),"verdict":verdict,"counts":counts,
         "expected_levels":[m["id"] for m in levels],"required_levels":[m["id"] for m in levels if m.get("required")],
         "levels":[{"id":r["level_id"],"name":r["level_name"],"verdict":r["verdict"],
-                   "result":str((run_root/"levels"/r["level_id"]/"result.json").relative_to(run_root))} for r in ordered],
+                   "result":canonical_level_result_path(r["level_id"])} for r in ordered],
         "target_protection":protection,
     }
+    seal_campaign_evidence(run_root, summary)
     write_json(run_root / "summary.json", summary)
     txt = [f"LevelUpDiag {selection} - {verdict}", f"Run: {run_id}", f"Target: {target}", ""]
     txt += [f"{r['level_id']:>3}  {r['verdict']:<12} {r['level_name']}" for r in ordered]
